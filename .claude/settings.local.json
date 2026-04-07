@@ -6,7 +6,9 @@
       "Bash(npx vitest:*)",
       "Bash(npx tsc:*)",
       "Bash(npm run:*)",
-      "WebFetch(domain:namu.wiki)"
+      "WebFetch(domain:namu.wiki)",
+      "mcp__mcp-registry__search_mcp_registry",
+      "mcp__mcp-registry__suggest_connectors"
     ]
   }
 }

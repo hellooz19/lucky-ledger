@@ -73,12 +73,13 @@ export class ShopScene extends Phaser.Scene {
       parseHex(colors.bg), parseHex(colors.border)
     ).setInteractive({ useHandCursor: true });
 
+    // Card text uses dark colors since card backgrounds are always light pastels
     this.add.text(width / 2, y - px(22), choice.title, {
-      fontFamily: PX_FONT, fontSize: `${px(9)}px`, color: theme.text.primary
+      fontFamily: PX_FONT, fontSize: `${px(9)}px`, color: "#1A2332"
     }).setOrigin(0.5);
 
     this.add.text(width / 2, y + px(14), choice.description, {
-      fontFamily: KR_FONT, fontSize: `${px(12)}px`, color: theme.text.secondary,
+      fontFamily: KR_FONT, fontSize: `${px(12)}px`, color: "#444444",
       wordWrap: { width: px(250) }, align: "center"
     }).setOrigin(0.5);
 
