@@ -1,4 +1,4 @@
-export type SymbolId = "coin" | "clover" | "bomb" | "bankrupt";
+export type SymbolId = "coin" | "clover" | "star" | "wild" | "bomb" | "bankrupt";
 
 export interface SymbolDef {
   id: SymbolId;
@@ -11,6 +11,20 @@ export interface RoundConfig {
   debtTarget: number;
   baseSpins: number;
   variance: number;
+}
+
+export interface PatternDef {
+  id: string;
+  name: string;
+  positions: number[];
+  value: number;
+}
+
+export interface PatternMatch {
+  patternId: string;
+  symbolId: SymbolId;
+  positions: number[];
+  reward: number;
 }
 
 export interface UpgradeOption {
@@ -39,10 +53,10 @@ export interface RunMeta {
 }
 
 export interface SpinOutcome {
-  symbols: SymbolId[];
-  deltaMoney: number;
+  grid: SymbolId[];
+  matches: PatternMatch[];
+  totalDelta: number;
   multiplierDelta: number;
-  spinsDelta: number;
   riskDelta: number;
   message: string;
 }
@@ -57,6 +71,7 @@ export interface GameRunState {
   maxMultiplier: number;
   riskMeter: number;
   coinBias: number;
+  wildBoost: number;
   shield: number;
   spinCount: number;
   spinSeconds: number;
