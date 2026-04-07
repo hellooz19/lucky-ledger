@@ -43,25 +43,25 @@ export const lightTheme: Theme = {
 };
 
 export const darkTheme: Theme = {
-  bg: { top: "#1A2332", bottom: "#1E2A3A" },
-  panel: { fill: "#2A3442", border: "#5CAD78" },
+  bg: { top: "#1E2D3D", bottom: "#243448" },
+  panel: { fill: "#354860", border: "#6BC68E" },
   button: { fill: "#FF9A3C", border: "#FFB86C", shadow: "#D47A1C", text: "#FFFFFF" },
-  text: { primary: "#E8F0E8", secondary: "#8899AA", accent: "#FF9A3C" },
-  progress: { bg: "#1E3328", border: "#5CAD78", fillStart: "#FFD43B", fillEnd: "#FF9A3C" },
+  text: { primary: "#E8F4E8", secondary: "#99AABB", accent: "#FFB347" },
+  progress: { bg: "#2A4038", border: "#6BC68E", fillStart: "#FFD43B", fillEnd: "#FF9A3C" },
   stats: {
-    spins: { bg: "#3A3420", border: "#F0C040", text: "#FFD43B" },
-    mult: { bg: "#1E3328", border: "#5CAD78", text: "#69DB7C" },
-    risk: { bg: "#3A2020", border: "#FFA0A0", text: "#FF6B6B" },
+    spins: { bg: "#4A4428", border: "#F0C040", text: "#FFD43B" },
+    mult: { bg: "#2A4038", border: "#6BC68E", text: "#69DB7C" },
+    risk: { bg: "#4A2828", border: "#FFA0A0", text: "#FF6B6B" },
   },
   symbols: {
-    coin: { bg: "#3A3420", border: "#F0C040" },
-    clover: { bg: "#1E3328", border: "#7BC67E" },
-    star: { bg: "#3A3420", border: "#F0C040" },
-    wild: { bg: "#2A2A3A", border: "#888888" },
-    bomb: { bg: "#3A2020", border: "#FFA0A0" },
-    bankrupt: { bg: "#2A2040", border: "#C9A0FF" },
+    coin: { bg: "#4A4428", border: "#F0C040" },
+    clover: { bg: "#2A4038", border: "#7BC67E" },
+    star: { bg: "#4A4428", border: "#F0C040" },
+    wild: { bg: "#38384A", border: "#AAAAAA" },
+    bomb: { bg: "#4A2828", border: "#FFA0A0" },
+    bankrupt: { bg: "#382850", border: "#C9A0FF" },
   },
-  decoration: { cloud: "#FFFFFF", grass: "#5CAD78" },
+  decoration: { cloud: "#8EAABB", grass: "#5CAD78" },
 };
 
 let current: Theme = lightTheme;

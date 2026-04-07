@@ -14,7 +14,7 @@ describe("Theme System", () => {
     setTheme("dark");
     const theme = getTheme();
     expect(theme).toBe(darkTheme);
-    expect(theme.bg.top).toBe("#1A2332");
+    expect(theme.bg.top).toBe("#1E2D3D");
   });
 
   it("both themes have all required keys", () => {
