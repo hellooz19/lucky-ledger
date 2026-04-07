@@ -12,6 +12,8 @@ export interface Theme {
   symbols: {
     coin: { bg: string; border: string };
     clover: { bg: string; border: string };
+    star: { bg: string; border: string };
+    wild: { bg: string; border: string };
     bomb: { bg: string; border: string };
     bankrupt: { bg: string; border: string };
   };
@@ -32,6 +34,8 @@ export const lightTheme: Theme = {
   symbols: {
     coin: { bg: "#FFF8DC", border: "#F0C040" },
     clover: { bg: "#F0FFF0", border: "#7BC67E" },
+    star: { bg: "#FFF3BF", border: "#F0C040" },
+    wild: { bg: "#F0E8FF", border: "#C0C0C0" },
     bomb: { bg: "#FFF0F0", border: "#FFA0A0" },
     bankrupt: { bg: "#F3E8FF", border: "#C9A0FF" },
   },
@@ -52,6 +56,8 @@ export const darkTheme: Theme = {
   symbols: {
     coin: { bg: "#3A3420", border: "#F0C040" },
     clover: { bg: "#1E3328", border: "#7BC67E" },
+    star: { bg: "#3A3420", border: "#F0C040" },
+    wild: { bg: "#2A2A3A", border: "#888888" },
     bomb: { bg: "#3A2020", border: "#FFA0A0" },
     bankrupt: { bg: "#2A2040", border: "#C9A0FF" },
   },
