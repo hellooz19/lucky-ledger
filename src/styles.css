@@ -1,0 +1,48 @@
+﻿:root {
+  --bg-top: #23163c;
+  --bg-mid: #332457;
+  --bg-bottom: #1a1130;
+  --glow-a: rgba(255, 182, 193, 0.38);
+  --glow-b: rgba(173, 216, 255, 0.28);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: "Segoe UI", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background:
+    radial-gradient(circle at 12% 14%, var(--glow-a) 0%, transparent 38%),
+    radial-gradient(circle at 88% 84%, var(--glow-b) 0%, transparent 42%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 48%, var(--bg-bottom) 100%);
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+canvas {
+  border: 2px solid rgba(255, 255, 255, 0.11);
+  border-radius: 12px;
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.35);
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: auto;
+  touch-action: manipulation;
+}
