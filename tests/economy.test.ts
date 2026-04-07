@@ -14,6 +14,7 @@ function makeState(): GameRunState {
     maxMultiplier: 5,
     riskMeter: 0,
     coinBias: 0,
+    wildBoost: 0,
     shield: 0,
     spinCount: 0,
     spinSeconds: 0,
@@ -24,22 +25,51 @@ function makeState(): GameRunState {
   };
 }
 
-describe("EconomyService", () => {
-  it("applies outcome with clamped lower bounds", () => {
+describe("EconomyService (3x3)", () => {
+  it("spin returns a grid of 9 symbols", () => {
+    const eco = new EconomyService();
+    const state = makeState();
+    const rng = new RngService(123);
+    const outcome = eco.spin(state, rng);
+    expect(outcome.grid).toHaveLength(9);
+  });
+
+  it("generates deterministic outcome from seeded rng", () => {
+    const eco = new EconomyService();
+    const state = makeState();
+    const a = eco.spin(state, new RngService(123));
+    const b = eco.spin(state, new RngService(123));
+    expect(a.grid).toEqual(b.grid);
+    expect(a.totalDelta).toEqual(b.totalDelta);
+  });
+
+  it("applies outcome: money clamped to 0", () => {
     const eco = new EconomyService();
     const state = makeState();
     eco.applyOutcome(state, {
-      symbols: ["bomb", "bankrupt", "bomb"],
-      deltaMoney: -999,
+      grid: ["bomb", "bomb", "bomb", "bomb", "bomb", "bomb", "bomb", "bomb", "bomb"],
+      matches: [],
+      totalDelta: -999,
       multiplierDelta: -3,
-      spinsDelta: -1,
       riskDelta: 40,
       message: "test"
     });
     expect(state.currentMoney).toBe(0);
     expect(state.multiplier).toBe(1);
-    expect(state.spinsLeft).toBe(8);
-    expect(state.riskMeter).toBeGreaterThan(0);
+  });
+
+  it("applies outcome: spins decrement by 1 (fixed)", () => {
+    const eco = new EconomyService();
+    const state = makeState();
+    eco.applyOutcome(state, {
+      grid: ["coin", "coin", "coin", "bomb", "bomb", "bomb", "star", "star", "star"],
+      matches: [],
+      totalDelta: 10,
+      multiplierDelta: 0,
+      riskDelta: 0,
+      message: "test"
+    });
+    expect(state.spinsLeft).toBe(9);
   });
 
   it("detects clear/fail conditions", () => {
@@ -52,28 +82,44 @@ describe("EconomyService", () => {
     expect(eco.isRunFailed(state)).toBe(true);
   });
 
-  it("generates deterministic outcome from seeded rng", () => {
+  it("no match gives penalty", () => {
     const eco = new EconomyService();
     const state = makeState();
-    const rngA = new RngService(123);
-    const rngB = new RngService(123);
-    const a = eco.spin(state, rngA);
-    const b = eco.spin(state, rngB);
-    expect(a.symbols).toEqual(b.symbols);
-    expect(a.deltaMoney).toEqual(b.deltaMoney);
+    const rng = new RngService(42);
+    let hadPenalty = false;
+    for (let i = 0; i < 50; i++) {
+      const outcome = eco.spin(state, rng);
+      if (outcome.matches.length === 0 && outcome.totalDelta < 0) {
+        hadPenalty = true;
+        break;
+      }
+    }
+    expect(hadPenalty).toBe(true);
   });
 
-  it("never exceeds max spins per round", () => {
+  it("clover match increases multiplier", () => {
     const eco = new EconomyService();
     const state = makeState();
     eco.applyOutcome(state, {
-      symbols: ["clover", "clover", "clover"],
-      deltaMoney: 10,
-      multiplierDelta: 2,
-      spinsDelta: 3,
+      grid: ["clover", "clover", "clover", "bomb", "coin", "star", "wild", "bomb", "coin"],
+      matches: [{ patternId: "row-top", symbolId: "clover", positions: [0, 1, 2], reward: 8 }],
+      totalDelta: 8,
+      multiplierDelta: 1,
       riskDelta: 0,
-      message: "bonus"
+      message: "Row Top Clover! +8"
     });
-    expect(state.spinsLeft).toBe(10);
+    expect(state.multiplier).toBe(2);
+  });
+
+  it("wildBoost increases wild weight", () => {
+    const eco = new EconomyService();
+    const state = makeState();
+    state.wildBoost = 50;
+    let wildCount = 0;
+    for (let i = 0; i < 100; i++) {
+      const outcome = eco.spin(state, new RngService(100 + i));
+      wildCount += outcome.grid.filter((s) => s === "wild").length;
+    }
+    expect(wildCount).toBeGreaterThan(50);
   });
 });
