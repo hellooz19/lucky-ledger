@@ -5,6 +5,11 @@
   --bg-bottom: #E8FFF0;
 }
 
+body.dark {
+  --bg-top: #1E2D3D;
+  --bg-bottom: #243448;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -38,4 +43,13 @@ canvas {
   max-height: 100%;
   image-rendering: pixelated;
   touch-action: manipulation;
+}
+
+/* Desktop: limit canvas size and add subtle border */
+@media (min-width: 600px) {
+  canvas {
+    max-height: 90vh;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  }
 }
