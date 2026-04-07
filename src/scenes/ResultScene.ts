@@ -1,8 +1,10 @@
-﻿import Phaser from "phaser";
+import Phaser from "phaser";
 import { session } from "../game/session";
 import { addSoftButton, addSoftPanel } from "../ui/softUi";
+import { getTheme, parseHex } from "../ui/theme";
+import { drawClouds, drawGrassBar } from "../ui/pixelDeco";
 
-const UI_FONT = "Segoe UI, Noto Sans KR, Apple SD Gothic Neo, Malgun Gothic, sans-serif";
+const PX_FONT = "'Press Start 2P', 'Courier New', monospace";
 
 export class ResultScene extends Phaser.Scene {
   constructor() {
@@ -11,73 +13,83 @@ export class ResultScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
+    const theme = getTheme();
     const s = Math.max(0.82, Math.min(width / 360, height / 640));
     const px = (n: number) => Math.round(n * s);
 
+    const bgTop = parseHex(theme.bg.top);
+    const bgBot = parseHex(theme.bg.bottom);
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(bgTop, bgTop, bgBot, bgBot, 1);
+    bg.fillRect(0, 0, width, height);
+
+    drawClouds(this);
+
     const saved = session.saveResultIfNeeded();
-    const topScores = session.leaderboard.getTopScores(5);
+    const isVictory = session.state.roundIndex >= 12;
 
-    addSoftPanel(this, width / 2, px(118), px(322), px(154), 0x3f2f63, 0xffdeeb, px(18));
-    this.add.text(width / 2, px(64), "Run Over", {
-      fontFamily: UI_FONT,
-      fontSize: `${px(26)}px`,
-      color: "#ff8787"
+    const headerText = isVictory ? "VICTORY!" : "RUN OVER";
+    const headerColor = isVictory ? "#1B9E5A" : "#E03131";
+    const headerShadow = isVictory ? "#A8E6CF" : "#FFA0A0";
+
+    this.add.text(width / 2, px(50), headerText, {
+      fontFamily: PX_FONT, fontSize: `${px(16)}px`, color: headerColor,
+      shadow: { offsetX: 2, offsetY: 2, color: headerShadow, fill: true, blur: 0 }
     }).setOrigin(0.5);
 
-    this.add.text(width / 2, px(118), `Score ${session.state.score}`, {
-      fontFamily: UI_FONT,
-      fontSize: `${px(20)}px`,
-      color: "#f8f9fa"
+    addSoftPanel(this, width / 2, px(130), px(280), px(100));
+
+    this.add.text(width / 2, px(105), `SCORE`, {
+      fontFamily: PX_FONT, fontSize: `${px(8)}px`, color: theme.text.secondary
     }).setOrigin(0.5);
 
-    this.add.text(width / 2, px(146), `Round ${session.state.roundIndex}`, {
-      fontFamily: UI_FONT,
-      fontSize: `${px(14)}px`,
-      color: "#dee2e6"
+    this.add.text(width / 2, px(130), `${session.state.score}`, {
+      fontFamily: PX_FONT, fontSize: `${px(20)}px`, color: theme.text.accent
+    }).setOrigin(0.5);
+
+    this.add.text(width / 2, px(158), `ROUND ${session.state.roundIndex}`, {
+      fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.text.primary
     }).setOrigin(0.5);
 
     if (saved) {
-      this.add.text(width / 2, px(176), "Saved to local leaderboard", {
-        fontFamily: UI_FONT,
-        fontSize: `${px(12)}px`,
-        color: "#69db7c"
+      this.add.text(width / 2, px(190), "Saved to leaderboard!", {
+        fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: "#1B9E5A"
       }).setOrigin(0.5);
     }
 
-    addSoftPanel(this, width / 2, px(266), px(322), px(128), 0x2e234a, 0xb197fc, px(18));
-    this.add.text(width / 2, px(218), "Top 5", {
-      fontFamily: UI_FONT,
-      fontSize: `${px(14)}px`,
-      color: "#ffd43b"
+    const lbY = px(290);
+    const topScores = session.leaderboard.getTopScores(5);
+    addSoftPanel(this, width / 2, lbY, px(280), px(130));
+
+    this.add.text(width / 2, lbY - px(44), "TOP 5", {
+      fontFamily: PX_FONT, fontSize: `${px(8)}px`, color: theme.text.primary
     }).setOrigin(0.5);
 
     topScores.forEach((row, idx) => {
-      this.add.text(width / 2, px(244 + idx * 22), `${idx + 1}. ${row.score} (R${row.roundReached})`, {
-        fontFamily: UI_FONT,
-        fontSize: `${px(12)}px`,
-        color: "#ced4da"
+      this.add.text(width / 2, lbY - px(22) + idx * px(20),
+        `${idx + 1}. ${row.score}  R${row.roundReached}`, {
+        fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.text.primary
       }).setOrigin(0.5);
     });
 
-    const retryY = height - px(136);
-    const retryButton = addSoftButton(this, width / 2, retryY, px(232), px(58), 0x37b24d, 0x8ce99a);
-    this.add.text(width / 2, retryY, "Retry", {
-      fontFamily: UI_FONT,
-      fontSize: `${px(20)}px`,
-      color: "#081c15"
+    const retryY = height - px(110);
+    const retryBtn = addSoftButton(this, width / 2, retryY, px(220), px(46));
+    this.add.text(width / 2, retryY, "RETRY", {
+      fontFamily: PX_FONT, fontSize: `${px(10)}px`, color: theme.button.text
     }).setOrigin(0.5);
-    retryButton.on("pointerup", () => {
+    retryBtn.on("pointerup", () => {
       session.startNewRun();
       this.scene.start("RunScene");
     });
 
-    const titleY = height - px(70);
-    const titleButton = addSoftButton(this, width / 2, titleY, px(232), px(48), 0x4c6ef5, 0xa5d8ff);
-    this.add.text(width / 2, titleY, "Title", {
-      fontFamily: UI_FONT,
-      fontSize: `${px(16)}px`,
-      color: "#edf2ff"
+    const titleY = height - px(54);
+    const titleBtn = addSoftButton(this, width / 2, titleY, px(220), px(40),
+      parseHex(theme.decoration.grass), parseHex(theme.panel.border));
+    this.add.text(width / 2, titleY, "TITLE", {
+      fontFamily: PX_FONT, fontSize: `${px(8)}px`, color: "#FFFFFF"
     }).setOrigin(0.5);
-    titleButton.on("pointerup", () => this.scene.start("TitleScene"));
+    titleBtn.on("pointerup", () => this.scene.start("TitleScene"));
+
+    drawGrassBar(this);
   }
 }
