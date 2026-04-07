@@ -27,11 +27,11 @@ const POOL: UpgradeOption[] = [
     }
   },
   {
-    id: "banker-focus",
-    title: "Extra Focus",
-    description: "Spins +2 (up to round max)",
+    id: "lucky-draw",
+    title: "Lucky Draw",
+    description: "Wild chance +10 next round",
     apply: (state) => {
-      state.spinsLeft += 2;
+      state.wildBoost += 10;
     }
   },
   {
