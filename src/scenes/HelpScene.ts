@@ -46,10 +46,10 @@ const PAGES: HelpPage[] = [
       const symbols = [
         { name: "COIN", val: "+2", desc: "돈을 벌어요" },
         { name: "FLOWER", val: "+3", desc: "배율이 올라요" },
-        { name: "STAR", val: "+5", desc: "큰 보너스!" },
+        { name: "STAR", val: "+5", desc: "큰 보너스" },
         { name: "JOKER", val: " 0", desc: "아무 심볼 대체" },
         { name: "BOMB", val: "-2", desc: "돈 손실 + 위험" },
-        { name: "GHOST", val: "-4", desc: "대규모 손실!" },
+        { name: "GHOST", val: "-4", desc: "대규모 손실" },
       ];
       symbols.forEach((sym, i) => {
         const sy = y + i * px(42);
@@ -167,7 +167,7 @@ const PAGES: HelpPage[] = [
       const upgrades = [
         { name: "Cash Boost", desc: "소지금 +40" },
         { name: "Coin Bias", desc: "코인 확률 +8" },
-        { name: "Shield", desc: "폭탄 1회 무효" },
+        { name: "Shield", desc: "폭탄 1회 무효화" },
         { name: "Lucky Draw", desc: "조커 확률 +10" },
         { name: "Cap Breaker", desc: "최대 배율 +1" },
         { name: "Risk Cooler", desc: "위험도 -20" },

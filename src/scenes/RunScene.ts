@@ -279,7 +279,7 @@ export class RunScene extends Phaser.Scene {
       { icon: "sym-clover", name: "FLOWER", val: "+3", desc: "배율 증가" },
       { icon: "sym-star",   name: "STAR",   val: "+5", desc: "고가 보너스" },
       { icon: "sym-wild",   name: "JOKER",  val: " 0", desc: "아무 심볼 대체" },
-      { icon: "sym-bomb",   name: "BOMB",   val: "-2", desc: "돈 손실+위험" },
+      { icon: "sym-bomb",   name: "BOMB",   val: "-2", desc: "돈 손실 + 위험" },
       { icon: "sym-ghost",  name: "GHOST",  val: "-4", desc: "대규모 손실" },
     ];
 
