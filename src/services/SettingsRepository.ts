@@ -5,7 +5,8 @@ const META_KEY = "game2.meta";
 
 const DEFAULT_SETTINGS: GameSettings = {
   soundOn: true,
-  vibrationOn: true
+  vibrationOn: true,
+  themeMode: "light"
 };
 
 const DEFAULT_META: RunMeta = {
@@ -23,7 +24,8 @@ export class SettingsRepository {
       const parsed = JSON.parse(raw) as Partial<GameSettings>;
       return {
         soundOn: parsed.soundOn ?? DEFAULT_SETTINGS.soundOn,
-        vibrationOn: parsed.vibrationOn ?? DEFAULT_SETTINGS.vibrationOn
+        vibrationOn: parsed.vibrationOn ?? DEFAULT_SETTINGS.vibrationOn,
+        themeMode: parsed.themeMode === "dark" ? "dark" : "light"
       };
     } catch {
       return { ...DEFAULT_SETTINGS };

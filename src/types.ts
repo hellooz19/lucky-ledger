@@ -30,6 +30,7 @@ export interface ScoreEntry {
 export interface GameSettings {
   soundOn: boolean;
   vibrationOn: boolean;
+  themeMode: "light" | "dark";
 }
 
 export interface RunMeta {
