@@ -30,6 +30,7 @@ export class RunScene extends Phaser.Scene {
   private gridCenterY = 0;
   private cellSize = 0;
   private cellGap = 0;
+  private comboCount = 0;
 
   private readonly symTex: Record<SymbolId, string> = {
     coin: "sym-coin", clover: "sym-clover", star: "sym-star",
@@ -154,18 +155,65 @@ export class RunScene extends Phaser.Scene {
         outcome.grid.forEach((sym, i) => {
           this.gridIcons[i].setTexture(this.symTex[sym]);
         });
-        if (outcome.matches.length > 0) {
+
+        const matchCount = outcome.matches.length;
+        const delta = outcome.totalDelta;
+
+        if (matchCount > 0) {
           this.highlightMatches(outcome.matches);
+          this.comboCount++;
+
+          // --- POPUP TEXT ---
+          const popupText = delta >= 0 ? `+${delta}` : `${delta}`;
+          const popupColor = delta >= 0 ? "#FFD43B" : "#FF4444";
+          const popupSize = Math.min(30, 14 + matchCount * 3);
+          this.spawnPopupText(popupText, popupColor, popupSize);
+
+          // --- COMBO COUNTER ---
+          if (this.comboCount >= 2) {
+            this.spawnPopupText(`COMBO x${this.comboCount}!`, "#FF9A3C", 12, 40);
+          }
+
+          // --- SPARKLE (bigger with more matches) ---
+          const sparkleAmount = Math.min(24, 8 + matchCount * 4 + Math.floor(Math.abs(delta) / 8));
+          this.spawnSparkleBurst(this.scale.width / 2, this.gridCenterY, sparkleAmount);
+
+          // --- SCREEN SHAKE (scales with reward) ---
+          if (matchCount >= 3 || Math.abs(delta) >= 30) {
+            this.shakeCamera(Math.min(8, 2 + matchCount), 150);
+          }
+
+          // --- BIG WIN effect ---
+          if (delta >= 50 || matchCount >= 5) {
+            this.spawnBigWinEffect();
+          }
+        } else {
+          // No match — reset combo
+          this.comboCount = 0;
         }
-        if (outcome.totalDelta > 0) {
-          this.spawnSparkleBurst(this.scale.width / 2, Math.round(190 * this.uiScale), Math.min(18, 8 + Math.floor(outcome.totalDelta / 10)));
+
+        // --- SCREEN SHAKE on big loss ---
+        if (delta <= -20) {
+          this.shakeCamera(4, 200);
         }
+
         this.log.setText(outcome.message);
       }
       if (session.settingsRepository.getSettings().vibrationOn && navigator.vibrate) {
-        navigator.vibrate(20);
+        const matchCount = outcome?.matches.length ?? 0;
+        navigator.vibrate(matchCount >= 3 ? [30, 20, 30] : 20);
       }
       this.renderState();
+
+      // Money text bounce on change
+      if (outcome && outcome.totalDelta !== 0) {
+        this.tweens.add({
+          targets: this.moneyText,
+          scaleX: 1.2, scaleY: 1.2,
+          yoyo: true, duration: 100
+        });
+      }
+
       this.isSpinning = false;
       this.spinButton.setInteractive({ useHandCursor: true });
       this.spinLabel.setText("SPIN!");
@@ -368,6 +416,71 @@ export class RunScene extends Phaser.Scene {
         onComplete: () => star.destroy()
       });
     }
+  }
+
+  private spawnPopupText(text: string, color: string, size: number, extraY = 0): void {
+    const px = (n: number) => Math.round(n * this.uiScale);
+    const popup = this.add.text(this.scale.width / 2, this.gridCenterY - px(20) - extraY, text, {
+      fontFamily: PX_FONT, fontSize: `${px(size)}px`, color,
+      stroke: "#000000", strokeThickness: px(2)
+    }).setOrigin(0.5).setAlpha(1);
+
+    this.tweens.add({
+      targets: popup,
+      y: popup.y - px(40),
+      alpha: 0,
+      scaleX: 1.3,
+      scaleY: 1.3,
+      duration: 800,
+      ease: "Power2",
+      onComplete: () => popup.destroy()
+    });
+  }
+
+  private shakeCamera(intensity: number, duration: number): void {
+    this.cameras.main.shake(duration, intensity / 1000);
+  }
+
+  private spawnBigWinEffect(): void {
+    const { width, height } = this.scale;
+    const px = (n: number) => Math.round(n * this.uiScale);
+    const theme = getTheme();
+    const colors = [0xFFD43B, 0xFF9A3C, 0xFF6BA6, 0x51CF66, 0x5BB8FF];
+
+    // Burst of colored squares from center
+    for (let i = 0; i < 30; i++) {
+      const particle = this.add.graphics();
+      const c = colors[i % colors.length];
+      const size = Phaser.Math.Between(4, 10);
+      particle.fillStyle(c, 1);
+      particle.fillRect(0, 0, size, size);
+      particle.setPosition(width / 2, this.gridCenterY);
+
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const dist = Phaser.Math.FloatBetween(60, 160) * this.uiScale;
+
+      this.tweens.add({
+        targets: particle,
+        x: width / 2 + Math.cos(angle) * dist,
+        y: this.gridCenterY + Math.sin(angle) * dist,
+        alpha: 0,
+        rotation: Phaser.Math.FloatBetween(-3, 3),
+        duration: Phaser.Math.Between(500, 900),
+        ease: "Power2",
+        onComplete: () => particle.destroy()
+      });
+    }
+
+    // Flash overlay
+    const flash = this.add.graphics();
+    flash.fillStyle(0xFFFFFF, 0.3);
+    flash.fillRect(0, 0, width, height);
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: 300,
+      onComplete: () => flash.destroy()
+    });
   }
 
   private buildSymbolTextures(): void {
