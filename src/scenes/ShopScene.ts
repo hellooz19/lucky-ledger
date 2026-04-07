@@ -6,12 +6,13 @@ import { getTheme, parseHex } from "../ui/theme";
 import { drawClouds, drawGrassBar } from "../ui/pixelDeco";
 
 const PX_FONT = "'Press Start 2P', 'Courier New', monospace";
+const KR_FONT = "'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif";
 
 const UPGRADE_COLORS: Record<string, { bg: string; border: string }> = {
   "cash-boost":      { bg: "#FFF3BF", border: "#F0C040" },
   "coin-bias":       { bg: "#FFF8DC", border: "#F0C040" },
   "reinforced-core": { bg: "#D4F0D4", border: "#7BC67E" },
-  "banker-focus":    { bg: "#E8F4FD", border: "#5BB8FF" },
+  "lucky-draw":      { bg: "#F0E8FF", border: "#C9A0FF" },
   "cap-breaker":     { bg: "#F3E8FF", border: "#C9A0FF" },
   "risk-cooler":     { bg: "#FFE8E8", border: "#FFA0A0" },
 };
@@ -24,6 +25,8 @@ export class ShopScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.picking = false;
+    this.input.enabled = true;
     const { width, height } = this.scale;
     const theme = getTheme();
     const s = Math.max(0.82, Math.min(width / 360, height / 640));
@@ -63,7 +66,7 @@ export class ShopScene extends Phaser.Scene {
     const { width } = this.scale;
     const theme = getTheme();
     const px = (n: number) => Math.round(n * s);
-    const y = px(150 + idx * 140);
+    const y = px(190 + idx * 140);
 
     const colors = UPGRADE_COLORS[choice.id] ?? { bg: theme.panel.fill, border: theme.panel.border };
     const card = addSoftPanel(this, width / 2, y, px(290), px(110),
@@ -74,8 +77,8 @@ export class ShopScene extends Phaser.Scene {
       fontFamily: PX_FONT, fontSize: `${px(9)}px`, color: theme.text.primary
     }).setOrigin(0.5);
 
-    this.add.text(width / 2, y + px(10), choice.description, {
-      fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: theme.text.secondary,
+    this.add.text(width / 2, y + px(14), choice.description, {
+      fontFamily: KR_FONT, fontSize: `${px(12)}px`, color: theme.text.secondary,
       wordWrap: { width: px(250) }, align: "center"
     }).setOrigin(0.5);
 
@@ -90,7 +93,12 @@ export class ShopScene extends Phaser.Scene {
       this.input.enabled = false;
       session.applyUpgrade(choice);
       session.moveToNextRound();
-      this.time.delayedCall(30, () => this.scene.start("RunScene"));
+      if (session.state.roundIndex >= 12) {
+        session.state.gameOver = true;
+        this.time.delayedCall(30, () => this.scene.start("ResultScene"));
+      } else {
+        this.time.delayedCall(30, () => this.scene.start("RunScene"));
+      }
     });
   }
 }

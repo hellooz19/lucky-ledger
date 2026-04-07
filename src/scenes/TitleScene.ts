@@ -57,7 +57,7 @@ export class TitleScene extends Phaser.Scene {
     this.add.text(width - px(30), px(30), "?", {
       fontFamily: PX_FONT, fontSize: `${px(12)}px`, color: theme.text.accent
     }).setOrigin(0.5);
-    helpBtn.on("pointerup", () => this.scene.start("HelpScene"));
+    helpBtn.on("pointerup", () => this.scene.start("HelpScene", { from: "TitleScene" }));
 
     const lbY = px(310);
     addSoftPanel(this, width / 2, lbY, px(300), px(170));

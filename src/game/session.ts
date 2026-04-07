@@ -45,7 +45,8 @@ export class GameSession {
     const conf = createRoundConfig(nextRound);
     this.state.roundIndex = conf.roundIndex;
     this.state.debtTarget = conf.debtTarget;
-    this.state.currentMoney = Math.max(20, Math.round(this.state.currentMoney * 0.35));
+    const carried = Math.max(20, Math.round(this.state.currentMoney * 0.35));
+    this.state.currentMoney = Math.min(carried, Math.floor(conf.debtTarget * 0.5));
     this.state.maxSpinsPerRound = conf.baseSpins;
     this.state.spinsLeft = conf.baseSpins;
     this.state.riskMeter = Math.max(0, Math.round(this.state.riskMeter * 0.55));

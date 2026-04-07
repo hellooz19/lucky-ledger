@@ -7,6 +7,7 @@ import { getTheme, parseHex } from "../ui/theme";
 import { drawClouds, drawGrassBar } from "../ui/pixelDeco";
 
 const PX_FONT = "'Press Start 2P', 'Courier New', monospace";
+const KR_FONT = "'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif";
 const ALL_SYMBOLS: SymbolId[] = ["coin", "clover", "star", "wild", "bomb", "bankrupt"];
 
 export class RunScene extends Phaser.Scene {
@@ -54,19 +55,19 @@ export class RunScene extends Phaser.Scene {
     this.buildSymbolTextures();
 
     // Top bar — back button + round + score
-    const backBtn = addSoftButton(this, px(16), px(12), px(24), px(20), parseHex(theme.panel.fill), parseHex(theme.panel.border));
-    this.add.text(px(16), px(12), "<", { fontFamily: PX_FONT, fontSize: `${px(8)}px`, color: theme.text.accent }).setOrigin(0.5);
+    const backBtn = addSoftButton(this, px(16), px(18), px(24), px(20), parseHex(theme.panel.fill), parseHex(theme.panel.border));
+    this.add.text(px(16), px(18), "<", { fontFamily: PX_FONT, fontSize: `${px(8)}px`, color: theme.text.accent }).setOrigin(0.5);
     backBtn.on("pointerup", () => this.scene.start("TitleScene"));
 
-    this.roundText = this.add.text(px(42), px(10), "", { fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.text.primary });
-    this.scoreText = this.add.text(width - px(14), px(10), "", { fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.text.primary }).setOrigin(1, 0);
+    this.roundText = this.add.text(px(42), px(16), "", { fontFamily: PX_FONT, fontSize: `${px(10)}px`, color: theme.text.primary });
+    this.scoreText = this.add.text(width - px(14), px(16), "", { fontFamily: PX_FONT, fontSize: `${px(10)}px`, color: theme.text.primary }).setOrigin(1, 0);
 
     // Money
-    this.moneyText = this.add.text(width / 2, px(36), "", { fontFamily: PX_FONT, fontSize: `${px(18)}px`, color: theme.text.accent }).setOrigin(0.5);
-    this.goalText = this.add.text(width / 2, px(56), "", { fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: theme.text.secondary }).setOrigin(0.5);
+    this.moneyText = this.add.text(width / 2, px(52), "", { fontFamily: PX_FONT, fontSize: `${px(22)}px`, color: theme.text.accent }).setOrigin(0.5);
+    this.goalText = this.add.text(width / 2, px(76), "", { fontFamily: PX_FONT, fontSize: `${px(8)}px`, color: theme.text.secondary }).setOrigin(0.5);
 
     // Progress bar
-    const progY = px(72);
+    const progY = px(94);
     const progW = width - px(28);
     const progBg = this.add.graphics();
     progBg.fillStyle(parseHex(theme.progress.bg), 1);
@@ -76,7 +77,7 @@ export class RunScene extends Phaser.Scene {
     this.progressFill = this.add.graphics();
 
     // 3x3 Grid
-    this.gridCenterY = px(210);
+    this.gridCenterY = px(240);
     this.cellSize = px(52);
     this.cellGap = px(4);
     const gridCenterY = this.gridCenterY;
@@ -99,49 +100,44 @@ export class RunScene extends Phaser.Scene {
     }
 
     // Log
-    this.log = this.add.text(width / 2, gridCenterY + gridSize / 2 + px(18), "", {
-      fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.text.accent,
+    this.log = this.add.text(width / 2, gridCenterY + gridSize / 2 + px(26), "", {
+      fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.text.accent,
       align: "center", wordWrap: { width: width - px(40) }
     }).setOrigin(0.5);
 
     // Stats chips
-    const chipY = px(348);
+    const chipY = px(388);
     const chipW = px(96);
     const chipH = px(40);
     addSoftPanel(this, width / 2 - px(104), chipY, chipW, chipH, parseHex(theme.stats.spins.bg), parseHex(theme.stats.spins.border));
-    this.add.text(width / 2 - px(104), chipY - px(10), "SPINS", { fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.stats.spins.text }).setOrigin(0.5);
-    this.spinsText = this.add.text(width / 2 - px(104), chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(9)}px`, color: theme.stats.spins.text }).setOrigin(0.5);
+    this.add.text(width / 2 - px(104), chipY - px(10), "SPINS", { fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.stats.spins.text }).setOrigin(0.5);
+    this.spinsText = this.add.text(width / 2 - px(104), chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(11)}px`, color: theme.stats.spins.text }).setOrigin(0.5);
 
     addSoftPanel(this, width / 2, chipY, chipW, chipH, parseHex(theme.stats.mult.bg), parseHex(theme.stats.mult.border));
-    this.add.text(width / 2, chipY - px(10), "MULTI", { fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.stats.mult.text }).setOrigin(0.5);
-    this.multiText = this.add.text(width / 2, chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(9)}px`, color: theme.stats.mult.text }).setOrigin(0.5);
+    this.add.text(width / 2, chipY - px(10), "MULTI", { fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.stats.mult.text }).setOrigin(0.5);
+    this.multiText = this.add.text(width / 2, chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(11)}px`, color: theme.stats.mult.text }).setOrigin(0.5);
 
     addSoftPanel(this, width / 2 + px(104), chipY, chipW, chipH, parseHex(theme.stats.risk.bg), parseHex(theme.stats.risk.border));
-    this.add.text(width / 2 + px(104), chipY - px(10), "RISK", { fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.stats.risk.text }).setOrigin(0.5);
-    this.riskText = this.add.text(width / 2 + px(104), chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(9)}px`, color: theme.stats.risk.text }).setOrigin(0.5);
+    this.add.text(width / 2 + px(104), chipY - px(10), "RISK", { fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.stats.risk.text }).setOrigin(0.5);
+    this.riskText = this.add.text(width / 2 + px(104), chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(11)}px`, color: theme.stats.risk.text }).setOrigin(0.5);
 
     // SPIN button
-    this.spinButton = addSoftButton(this, width / 2, height - px(86), px(220), px(44));
-    this.spinLabel = this.add.text(width / 2, height - px(86), "SPIN!", { fontFamily: PX_FONT, fontSize: `${px(12)}px`, color: theme.button.text }).setOrigin(0.5);
+    this.spinButton = addSoftButton(this, width / 2, height - px(96), px(220), px(44));
+    this.spinLabel = this.add.text(width / 2, height - px(96), "SPIN!", { fontFamily: PX_FONT, fontSize: `${px(16)}px`, color: theme.button.text }).setOrigin(0.5);
     this.spinButton.on("pointerup", () => this.onSpin());
 
     // Bottom buttons: ? and COMBO
-    const bottomY = height - px(38);
+    const bottomY = height - px(34);
     const helpBtn = addSoftButton(this, px(30), bottomY, px(36), px(28), parseHex(theme.panel.fill), parseHex(theme.panel.border));
     this.add.text(px(30), bottomY, "?", { fontFamily: PX_FONT, fontSize: `${px(10)}px`, color: theme.text.accent }).setOrigin(0.5);
-    helpBtn.on("pointerup", () => this.scene.start("HelpScene"));
+    helpBtn.on("pointerup", () => this.scene.start("HelpScene", { from: "RunScene" }));
 
     const patBtn = addSoftButton(this, width - px(50), bottomY, px(70), px(28), parseHex(theme.panel.fill), parseHex(theme.panel.border));
-    this.add.text(width - px(50), bottomY, "COMBO", { fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.text.accent }).setOrigin(0.5);
+    this.add.text(width - px(50), bottomY, "COMBO", { fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.text.accent }).setOrigin(0.5);
     patBtn.on("pointerup", () => this.toggleOverlay());
 
     drawGrassBar(this);
     this.renderState();
-
-    // If already cleared (e.g. money carried over exceeds new target), go to shop
-    if (session.isRoundCleared()) {
-      this.time.delayedCall(100, () => this.scene.start("ShopScene"));
-    }
   }
 
   private onSpin(): void {
@@ -198,7 +194,7 @@ export class RunScene extends Phaser.Scene {
 
     this.progressFill.clear();
     this.progressFill.fillGradientStyle(parseHex(theme.progress.fillStart), parseHex(theme.progress.fillEnd), parseHex(theme.progress.fillStart), parseHex(theme.progress.fillEnd), 1);
-    this.progressFill.fillRect(px(14) + 1, px(72) + 1, progW, px(10) - 2);
+    this.progressFill.fillRect(px(14) + 1, px(94) + 1, progW, px(10) - 2);
   }
 
   private animateSpin(onComplete: () => void): void {
@@ -271,11 +267,11 @@ export class RunScene extends Phaser.Scene {
     dim.on("pointerup", () => this.toggleOverlay());
     this.overlayGroup.add(dim);
 
-    const title = this.add.text(width / 2, px(18), "GUIDE", { fontFamily: PX_FONT, fontSize: `${px(10)}px`, color: "#FFD43B" }).setOrigin(0.5);
+    const title = this.add.text(width / 2, px(18), "GUIDE", { fontFamily: PX_FONT, fontSize: `${px(12)}px`, color: "#FFD43B" }).setOrigin(0.5);
     this.overlayGroup.add(title);
 
     // --- Symbol info section ---
-    const symTitle = this.add.text(width / 2, px(38), "SYMBOLS", { fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: "#8CE99A" }).setOrigin(0.5);
+    const symTitle = this.add.text(width / 2, px(38), "SYMBOLS", { fontFamily: PX_FONT, fontSize: `${px(8)}px`, color: "#8CE99A" }).setOrigin(0.5);
     this.overlayGroup.add(symTitle);
 
     const symbolInfo = [
@@ -297,12 +293,12 @@ export class RunScene extends Phaser.Scene {
       this.overlayGroup!.add(icon);
 
       const nameText = this.add.text(sx + px(14), sy - px(6), `${sym.name} (${sym.val})`, {
-        fontFamily: PX_FONT, fontSize: `${px(4)}px`, color: "#FFFFFF"
+        fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: "#FFFFFF"
       });
       this.overlayGroup!.add(nameText);
 
       const descText = this.add.text(sx + px(14), sy + px(2), sym.desc, {
-        fontFamily: PX_FONT, fontSize: `${px(3)}px`, color: "#AAAAAA"
+        fontFamily: KR_FONT, fontSize: `${px(6)}px`, color: "#AAAAAA"
       });
       this.overlayGroup!.add(descText);
     });
@@ -310,12 +306,12 @@ export class RunScene extends Phaser.Scene {
     // --- Formula ---
     const formulaY = px(132);
     const formula = this.add.text(width / 2, formulaY, "보상 = (심볼+1)x(패턴+1)x배율", {
-      fontFamily: PX_FONT, fontSize: `${px(3)}px`, color: "#FFD43B"
+      fontFamily: KR_FONT, fontSize: `${px(7)}px`, color: "#FFD43B"
     }).setOrigin(0.5);
     this.overlayGroup.add(formula);
 
     // --- Pattern section ---
-    const patTitle = this.add.text(width / 2, px(148), "PATTERNS", { fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: "#8CE99A" }).setOrigin(0.5);
+    const patTitle = this.add.text(width / 2, px(148), "PATTERNS", { fontFamily: PX_FONT, fontSize: `${px(8)}px`, color: "#8CE99A" }).setOrigin(0.5);
     this.overlayGroup.add(patTitle);
 
     const miniCell = px(8);
@@ -343,12 +339,12 @@ export class RunScene extends Phaser.Scene {
       this.overlayGroup!.add(gridG);
 
       const label = this.add.text(baseX + (miniCell + miniGap) * 3 + px(4), baseY + px(2), pat.name, {
-        fontFamily: PX_FONT, fontSize: `${px(4)}px`, color: "#FFFFFF"
+        fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: "#FFFFFF"
       });
       this.overlayGroup!.add(label);
 
       const valText = this.add.text(baseX + (miniCell + miniGap) * 3 + px(4), baseY + px(14), `x${pat.value + 1}`, {
-        fontFamily: PX_FONT, fontSize: `${px(3)}px`, color: "#AAAAAA"
+        fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: "#AAAAAA"
       });
       this.overlayGroup!.add(valText);
     });
