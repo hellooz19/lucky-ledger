@@ -26,6 +26,9 @@ export class RunScene extends Phaser.Scene {
   private gridHighlights: Phaser.GameObjects.Graphics[] = [];
   private uiScale = 1;
   private overlayGroup: Phaser.GameObjects.Group | null = null;
+  private gridCenterY = 0;
+  private cellSize = 0;
+  private cellGap = 0;
 
   private readonly symTex: Record<SymbolId, string> = {
     coin: "sym-coin", clover: "sym-clover", star: "sym-star",
@@ -50,16 +53,20 @@ export class RunScene extends Phaser.Scene {
     drawClouds(this);
     this.buildSymbolTextures();
 
-    // Top bar
-    this.roundText = this.add.text(px(14), px(10), "", { fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.text.primary });
+    // Top bar — back button + round + score
+    const backBtn = addSoftButton(this, px(16), px(12), px(24), px(20), parseHex(theme.panel.fill), parseHex(theme.panel.border));
+    this.add.text(px(16), px(12), "<", { fontFamily: PX_FONT, fontSize: `${px(8)}px`, color: theme.text.accent }).setOrigin(0.5);
+    backBtn.on("pointerup", () => this.scene.start("TitleScene"));
+
+    this.roundText = this.add.text(px(42), px(10), "", { fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.text.primary });
     this.scoreText = this.add.text(width - px(14), px(10), "", { fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.text.primary }).setOrigin(1, 0);
 
     // Money
-    this.moneyText = this.add.text(width / 2, px(40), "", { fontFamily: PX_FONT, fontSize: `${px(20)}px`, color: theme.text.accent }).setOrigin(0.5);
-    this.goalText = this.add.text(width / 2, px(64), "", { fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: theme.text.secondary }).setOrigin(0.5);
+    this.moneyText = this.add.text(width / 2, px(36), "", { fontFamily: PX_FONT, fontSize: `${px(18)}px`, color: theme.text.accent }).setOrigin(0.5);
+    this.goalText = this.add.text(width / 2, px(56), "", { fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: theme.text.secondary }).setOrigin(0.5);
 
     // Progress bar
-    const progY = px(80);
+    const progY = px(72);
     const progW = width - px(28);
     const progBg = this.add.graphics();
     progBg.fillStyle(parseHex(theme.progress.bg), 1);
@@ -69,18 +76,21 @@ export class RunScene extends Phaser.Scene {
     this.progressFill = this.add.graphics();
 
     // 3x3 Grid
-    const gridCenterY = px(190);
-    const cellSize = px(56);
-    const gap = px(4);
+    this.gridCenterY = px(210);
+    this.cellSize = px(52);
+    this.cellGap = px(4);
+    const gridCenterY = this.gridCenterY;
+    const cellSize = this.cellSize;
+    const gap = this.cellGap;
     const gridSize = cellSize * 3 + gap * 2;
-    addSoftPanel(this, width / 2, gridCenterY, gridSize + px(20), gridSize + px(20));
+    addSoftPanel(this, width / 2, gridCenterY, gridSize + px(18), gridSize + px(18));
 
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 3; col++) {
         const cx = width / 2 + (col - 1) * (cellSize + gap);
         const cy = gridCenterY + (row - 1) * (cellSize + gap);
         addSoftPanel(this, cx, cy, cellSize, cellSize);
-        const icon = this.add.image(cx, cy, this.symTex.coin).setDisplaySize(px(42), px(42));
+        const icon = this.add.image(cx, cy, this.symTex.coin).setDisplaySize(px(38), px(38));
         this.gridIcons.push(icon);
         const hl = this.add.graphics();
         hl.setVisible(false);
@@ -89,13 +99,13 @@ export class RunScene extends Phaser.Scene {
     }
 
     // Log
-    this.log = this.add.text(width / 2, gridCenterY + gridSize / 2 + px(16), "", {
+    this.log = this.add.text(width / 2, gridCenterY + gridSize / 2 + px(18), "", {
       fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.text.accent,
       align: "center", wordWrap: { width: width - px(40) }
     }).setOrigin(0.5);
 
     // Stats chips
-    const chipY = px(320);
+    const chipY = px(348);
     const chipW = px(96);
     const chipH = px(40);
     addSoftPanel(this, width / 2 - px(104), chipY, chipW, chipH, parseHex(theme.stats.spins.bg), parseHex(theme.stats.spins.border));
@@ -111,21 +121,27 @@ export class RunScene extends Phaser.Scene {
     this.riskText = this.add.text(width / 2 + px(104), chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(9)}px`, color: theme.stats.risk.text }).setOrigin(0.5);
 
     // SPIN button
-    this.spinButton = addSoftButton(this, width / 2, height - px(74), px(280), px(54));
-    this.spinLabel = this.add.text(width / 2, height - px(74), "SPIN!", { fontFamily: PX_FONT, fontSize: `${px(14)}px`, color: theme.button.text }).setOrigin(0.5);
+    this.spinButton = addSoftButton(this, width / 2, height - px(86), px(220), px(44));
+    this.spinLabel = this.add.text(width / 2, height - px(86), "SPIN!", { fontFamily: PX_FONT, fontSize: `${px(12)}px`, color: theme.button.text }).setOrigin(0.5);
     this.spinButton.on("pointerup", () => this.onSpin());
 
     // Bottom buttons: ? and COMBO
-    const helpBtn = addSoftButton(this, px(30), height - px(30), px(36), px(28), parseHex(theme.panel.fill), parseHex(theme.panel.border));
-    this.add.text(px(30), height - px(30), "?", { fontFamily: PX_FONT, fontSize: `${px(10)}px`, color: theme.text.accent }).setOrigin(0.5);
+    const bottomY = height - px(38);
+    const helpBtn = addSoftButton(this, px(30), bottomY, px(36), px(28), parseHex(theme.panel.fill), parseHex(theme.panel.border));
+    this.add.text(px(30), bottomY, "?", { fontFamily: PX_FONT, fontSize: `${px(10)}px`, color: theme.text.accent }).setOrigin(0.5);
     helpBtn.on("pointerup", () => this.scene.start("HelpScene"));
 
-    const patBtn = addSoftButton(this, width - px(50), height - px(30), px(70), px(28), parseHex(theme.panel.fill), parseHex(theme.panel.border));
-    this.add.text(width - px(50), height - px(30), "COMBO", { fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.text.accent }).setOrigin(0.5);
+    const patBtn = addSoftButton(this, width - px(50), bottomY, px(70), px(28), parseHex(theme.panel.fill), parseHex(theme.panel.border));
+    this.add.text(width - px(50), bottomY, "COMBO", { fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.text.accent }).setOrigin(0.5);
     patBtn.on("pointerup", () => this.toggleOverlay());
 
     drawGrassBar(this);
     this.renderState();
+
+    // If already cleared (e.g. money carried over exceeds new target), go to shop
+    if (session.isRoundCleared()) {
+      this.time.delayedCall(100, () => this.scene.start("ShopScene"));
+    }
   }
 
   private onSpin(): void {
@@ -182,7 +198,7 @@ export class RunScene extends Phaser.Scene {
 
     this.progressFill.clear();
     this.progressFill.fillGradientStyle(parseHex(theme.progress.fillStart), parseHex(theme.progress.fillEnd), parseHex(theme.progress.fillStart), parseHex(theme.progress.fillEnd), 1);
-    this.progressFill.fillRect(px(14) + 1, px(80) + 1, progW, px(10) - 2);
+    this.progressFill.fillRect(px(14) + 1, px(72) + 1, progW, px(10) - 2);
   }
 
   private animateSpin(onComplete: () => void): void {
@@ -202,11 +218,10 @@ export class RunScene extends Phaser.Scene {
   }
 
   private highlightMatches(matches: PatternMatch[]): void {
-    const px = (n: number) => Math.round(n * this.uiScale);
-    const cellSize = px(56);
-    const gap = px(4);
+    const cellSize = this.cellSize;
+    const gap = this.cellGap;
     const { width } = this.scale;
-    const gridCenterY = px(190);
+    const gridCenterY = this.gridCenterY;
 
     const allPositions = new Set<number>();
     for (const m of matches) {
@@ -256,19 +271,63 @@ export class RunScene extends Phaser.Scene {
     dim.on("pointerup", () => this.toggleOverlay());
     this.overlayGroup.add(dim);
 
-    const title = this.add.text(width / 2, px(30), "PATTERNS", { fontFamily: PX_FONT, fontSize: `${px(10)}px`, color: "#FFD43B" }).setOrigin(0.5);
+    const title = this.add.text(width / 2, px(18), "GUIDE", { fontFamily: PX_FONT, fontSize: `${px(10)}px`, color: "#FFD43B" }).setOrigin(0.5);
     this.overlayGroup.add(title);
 
-    const miniCell = px(10);
-    const miniGap = px(2);
+    // --- Symbol info section ---
+    const symTitle = this.add.text(width / 2, px(38), "SYMBOLS", { fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: "#8CE99A" }).setOrigin(0.5);
+    this.overlayGroup.add(symTitle);
+
+    const symbolInfo = [
+      { icon: "sym-coin",   name: "COIN",   val: "+2", desc: "돈 획득" },
+      { icon: "sym-clover", name: "FLOWER", val: "+3", desc: "배율 증가" },
+      { icon: "sym-star",   name: "STAR",   val: "+5", desc: "고가 보너스" },
+      { icon: "sym-wild",   name: "JOKER",  val: " 0", desc: "아무 심볼 대체" },
+      { icon: "sym-bomb",   name: "BOMB",   val: "-2", desc: "돈 손실+위험" },
+      { icon: "sym-ghost",  name: "GHOST",  val: "-4", desc: "대규모 손실" },
+    ];
+
+    symbolInfo.forEach((sym, idx) => {
+      const col = idx < 3 ? 0 : 1;
+      const row = idx < 3 ? idx : idx - 3;
+      const sx = width / 2 + (col === 0 ? -px(80) : px(10));
+      const sy = px(54) + row * px(24);
+
+      const icon = this.add.image(sx, sy, sym.icon).setDisplaySize(px(16), px(16));
+      this.overlayGroup!.add(icon);
+
+      const nameText = this.add.text(sx + px(14), sy - px(6), `${sym.name} (${sym.val})`, {
+        fontFamily: PX_FONT, fontSize: `${px(4)}px`, color: "#FFFFFF"
+      });
+      this.overlayGroup!.add(nameText);
+
+      const descText = this.add.text(sx + px(14), sy + px(2), sym.desc, {
+        fontFamily: PX_FONT, fontSize: `${px(3)}px`, color: "#AAAAAA"
+      });
+      this.overlayGroup!.add(descText);
+    });
+
+    // --- Formula ---
+    const formulaY = px(132);
+    const formula = this.add.text(width / 2, formulaY, "보상 = (심볼+1)x(패턴+1)x배율", {
+      fontFamily: PX_FONT, fontSize: `${px(3)}px`, color: "#FFD43B"
+    }).setOrigin(0.5);
+    this.overlayGroup.add(formula);
+
+    // --- Pattern section ---
+    const patTitle = this.add.text(width / 2, px(148), "PATTERNS", { fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: "#8CE99A" }).setOrigin(0.5);
+    this.overlayGroup.add(patTitle);
+
+    const miniCell = px(8);
+    const miniGap = px(1);
     const colWidth = px(150);
-    const startY = px(60);
+    const startY = px(164);
 
     PATTERNS.forEach((pat, idx) => {
       const col = idx < 7 ? 0 : 1;
       const row = idx < 7 ? idx : idx - 7;
       const baseX = width / 2 + (col === 0 ? -colWidth / 2 - px(10) : colWidth / 2 - px(40));
-      const baseY = startY + row * px(72);
+      const baseY = startY + row * px(58);
 
       const gridG = this.add.graphics();
       for (let r = 0; r < 3; r++) {
@@ -283,13 +342,13 @@ export class RunScene extends Phaser.Scene {
       }
       this.overlayGroup!.add(gridG);
 
-      const label = this.add.text(baseX + (miniCell + miniGap) * 3 + px(6), baseY + px(4), pat.name, {
-        fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: "#FFFFFF"
+      const label = this.add.text(baseX + (miniCell + miniGap) * 3 + px(4), baseY + px(2), pat.name, {
+        fontFamily: PX_FONT, fontSize: `${px(4)}px`, color: "#FFFFFF"
       });
       this.overlayGroup!.add(label);
 
-      const valText = this.add.text(baseX + (miniCell + miniGap) * 3 + px(6), baseY + px(16), `Value: ${pat.value}`, {
-        fontFamily: PX_FONT, fontSize: `${px(4)}px`, color: "#AAAAAA"
+      const valText = this.add.text(baseX + (miniCell + miniGap) * 3 + px(4), baseY + px(14), `x${pat.value + 1}`, {
+        fontFamily: PX_FONT, fontSize: `${px(3)}px`, color: "#AAAAAA"
       });
       this.overlayGroup!.add(valText);
     });
@@ -361,16 +420,31 @@ export class RunScene extends Phaser.Scene {
     });
 
     tile("sym-wild", theme.symbols.wild.bg, theme.symbols.wild.border, (g) => {
-      g.fillStyle(0xFFCCCC, 0.4); g.fillRect(4, 4, 64, 22);
-      g.fillStyle(0xCCFFCC, 0.4); g.fillRect(4, 26, 64, 22);
-      g.fillStyle(0xCCCCFF, 0.4); g.fillRect(4, 48, 64, 20);
+      // Card-style joker: white card inner
+      g.fillStyle(0xFFFFFF, 1);
+      g.fillRect(10, 6, 52, 60);
+      // Big purple "J"
       g.fillStyle(0x7C6EF0, 1);
-      g.fillRect(18, 20, 5, 28); g.fillRect(49, 20, 5, 28);
-      g.fillRect(29, 38, 5, 10); g.fillRect(38, 38, 5, 10);
-      g.fillRect(23, 44, 6, 4); g.fillRect(43, 44, 6, 4);
-      g.fillRect(33, 44, 6, 4);
-      g.fillStyle(0x5D4037, 1);
-      g.fillRect(28, 12, 4, 4); g.fillRect(40, 12, 4, 4);
+      g.fillRect(26, 12, 20, 5);   // top bar
+      g.fillRect(34, 12, 5, 32);   // vertical
+      g.fillRect(24, 40, 12, 5);   // bottom hook
+      g.fillRect(24, 35, 5, 10);   // hook up
+      // Red diamond top-left
+      g.fillStyle(0xE03131, 1);
+      g.fillRect(16, 10, 4, 4);
+      // Red diamond bottom-right
+      g.fillRect(52, 54, 4, 4);
+      // Star accents
+      g.fillStyle(0xFFD43B, 1);
+      g.fillRect(14, 50, 6, 6);
+      g.fillRect(50, 10, 6, 6);
+      // Small "JOKER" text dots at bottom
+      g.fillStyle(0x7C6EF0, 0.5);
+      g.fillRect(18, 58, 3, 3);
+      g.fillRect(24, 58, 3, 3);
+      g.fillRect(30, 58, 3, 3);
+      g.fillRect(36, 58, 3, 3);
+      g.fillRect(42, 58, 3, 3);
     });
 
     tile("sym-bomb", theme.symbols.bomb.bg, theme.symbols.bomb.border, (g) => {

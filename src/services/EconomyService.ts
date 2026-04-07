@@ -64,17 +64,22 @@ export class EconomyService {
         multiplierDelta -= 1;
       }
 
-      const sign = match.reward >= 0 ? "+" : "";
-      matchMessages.push(`${match.patternId} ${match.symbolId} ${sign}${match.reward}`);
+      matchMessages.push(match.patternId);
     }
+
+    const total = Math.round(totalDelta);
+    const sign = total >= 0 ? "+" : "";
+    const summary = matches.length === 1
+      ? `${matchMessages[0]}! ${sign}${total}`
+      : `${matches.length} hits! ${sign}${total}`;
 
     return {
       grid,
       matches,
-      totalDelta: Math.round(totalDelta),
+      totalDelta: total,
       multiplierDelta,
       riskDelta,
-      message: matchMessages.join(" | ")
+      message: summary
     };
   }
 
