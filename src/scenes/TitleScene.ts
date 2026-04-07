@@ -3,6 +3,7 @@ import { session } from "../game/session";
 import { addSoftButton, addSoftPanel } from "../ui/softUi";
 import { getTheme, parseHex, setTheme } from "../ui/theme";
 import { drawClouds, drawGrassBar } from "../ui/pixelDeco";
+import { applyBodyTheme } from "../main";
 
 const PX_FONT = "'Press Start 2P', 'Courier New', monospace";
 
@@ -49,6 +50,14 @@ export class TitleScene extends Phaser.Scene {
       session.startNewRun();
       this.scene.start("RunScene");
     });
+
+    // Help button
+    const helpBtn = addSoftButton(this, width - px(30), px(30), px(36), px(36),
+      parseHex(theme.panel.fill), parseHex(theme.panel.border));
+    this.add.text(width - px(30), px(30), "?", {
+      fontFamily: PX_FONT, fontSize: `${px(12)}px`, color: theme.text.accent
+    }).setOrigin(0.5);
+    helpBtn.on("pointerup", () => this.scene.start("HelpScene"));
 
     const lbY = px(310);
     addSoftPanel(this, width / 2, lbY, px(300), px(170));
@@ -115,6 +124,7 @@ export class TitleScene extends Phaser.Scene {
       next.themeMode = next.themeMode === "dark" ? "light" : "dark";
       session.settingsRepository.setSettings(next);
       setTheme(next.themeMode);
+      applyBodyTheme(next.themeMode);
       this.scene.restart();
     });
 
