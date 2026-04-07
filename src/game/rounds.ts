@@ -5,7 +5,7 @@ export function createRoundConfig(roundIndex: number): RoundConfig {
   return {
     roundIndex,
     debtTarget: Math.round(95 + ramp * 55),
-    baseSpins: Math.max(8, 14 - Math.floor(roundIndex / 2)),
+    baseSpins: Math.max(6, 15 - roundIndex),
     variance: Math.round(12 + roundIndex * 3)
   };
 }

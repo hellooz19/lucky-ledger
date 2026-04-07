@@ -84,8 +84,9 @@ export class EconomyService {
   }
 
   applyOutcome(state: GameRunState, outcome: SpinOutcome): void {
+    const SPIN_COST = 10;
     state.spinsLeft = Math.max(0, state.spinsLeft - 1);
-    state.currentMoney = Math.max(0, state.currentMoney + outcome.totalDelta);
+    state.currentMoney = Math.max(0, state.currentMoney + outcome.totalDelta - SPIN_COST);
     state.multiplier = Math.max(1, Math.min(state.maxMultiplier, state.multiplier + outcome.multiplierDelta));
     state.riskMeter = Math.max(0, Math.min(100, state.riskMeter + outcome.riskDelta - 5));
     state.spinCount += 1;

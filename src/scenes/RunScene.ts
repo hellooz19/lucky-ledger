@@ -31,6 +31,7 @@ export class RunScene extends Phaser.Scene {
   private cellSize = 0;
   private cellGap = 0;
   private comboCount = 0;
+  private probBars: { bar: Phaser.GameObjects.Graphics; label: Phaser.GameObjects.Text; pct: Phaser.GameObjects.Text }[] = [];
 
   private readonly symTex: Record<SymbolId, string> = {
     coin: "sym-coin", clover: "sym-clover", star: "sym-star",
@@ -100,31 +101,104 @@ export class RunScene extends Phaser.Scene {
       }
     }
 
-    // Log
-    this.log = this.add.text(width / 2, gridCenterY + gridSize / 2 + px(26), "", {
+    // Log (below grid)
+    this.log = this.add.text(width / 2, gridCenterY + gridSize / 2 + px(20), "", {
       fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.text.accent,
       align: "center", wordWrap: { width: width - px(40) }
     }).setOrigin(0.5);
 
     // Stats chips
-    const chipY = px(388);
+    const chipY = px(378);
     const chipW = px(96);
-    const chipH = px(40);
+    const chipH = px(36);
     addSoftPanel(this, width / 2 - px(104), chipY, chipW, chipH, parseHex(theme.stats.spins.bg), parseHex(theme.stats.spins.border));
-    this.add.text(width / 2 - px(104), chipY - px(10), "SPINS", { fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.stats.spins.text }).setOrigin(0.5);
-    this.spinsText = this.add.text(width / 2 - px(104), chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(11)}px`, color: theme.stats.spins.text }).setOrigin(0.5);
+    this.add.text(width / 2 - px(104), chipY - px(8), "SPINS", { fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: theme.stats.spins.text }).setOrigin(0.5);
+    this.spinsText = this.add.text(width / 2 - px(104), chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(10)}px`, color: theme.stats.spins.text }).setOrigin(0.5);
 
     addSoftPanel(this, width / 2, chipY, chipW, chipH, parseHex(theme.stats.mult.bg), parseHex(theme.stats.mult.border));
-    this.add.text(width / 2, chipY - px(10), "MULTI", { fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.stats.mult.text }).setOrigin(0.5);
-    this.multiText = this.add.text(width / 2, chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(11)}px`, color: theme.stats.mult.text }).setOrigin(0.5);
+    this.add.text(width / 2, chipY - px(8), "MULTI", { fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: theme.stats.mult.text }).setOrigin(0.5);
+    this.multiText = this.add.text(width / 2, chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(10)}px`, color: theme.stats.mult.text }).setOrigin(0.5);
 
     addSoftPanel(this, width / 2 + px(104), chipY, chipW, chipH, parseHex(theme.stats.risk.bg), parseHex(theme.stats.risk.border));
-    this.add.text(width / 2 + px(104), chipY - px(10), "RISK", { fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.stats.risk.text }).setOrigin(0.5);
-    this.riskText = this.add.text(width / 2 + px(104), chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(11)}px`, color: theme.stats.risk.text }).setOrigin(0.5);
+    this.add.text(width / 2 + px(104), chipY - px(8), "RISK", { fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: theme.stats.risk.text }).setOrigin(0.5);
+    this.riskText = this.add.text(width / 2 + px(104), chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(10)}px`, color: theme.stats.risk.text }).setOrigin(0.5);
 
-    // SPIN button
-    this.spinButton = addSoftButton(this, width / 2, height - px(96), px(220), px(44));
-    this.spinLabel = this.add.text(width / 2, height - px(96), "SPIN!", { fontFamily: PX_FONT, fontSize: `${px(16)}px`, color: theme.button.text }).setOrigin(0.5);
+    // Probability bars (below stats)
+    const probNames = ["COIN", "FLOWER", "STAR", "JOKER", "BOMB", "GHOST"];
+    const probPanelH = px(106);
+    const probPanelCenterY = px(460);
+    this.probBars = [];
+    addSoftPanel(this, width / 2, probPanelCenterY, width - px(24), probPanelH);
+    const probStartY = probPanelCenterY - px(38);
+    probNames.forEach((name, i) => {
+      const by = probStartY + i * px(15);
+      const label = this.add.text(px(20), by, name, {
+        fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.text.secondary
+      }).setOrigin(0, 0.5);
+      const bar = this.add.graphics();
+      const pct = this.add.text(width - px(18), by, "", {
+        fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.text.primary
+      }).setOrigin(1, 0.5);
+      this.probBars.push({ bar, label, pct });
+    });
+
+    // Lever (right side of grid, decorative + clickable)
+    const leverX = width / 2 + gridSize / 2 + px(34);
+    const leverTopY = gridCenterY - px(50);
+    const leverH = px(100);
+    const leverG = this.add.graphics();
+    // Slot housing (metallic frame)
+    leverG.fillStyle(0xAAAAAA, 1);
+    leverG.fillRect(leverX - px(6), leverTopY + px(20), px(12), leverH - px(20));
+    // Slot track groove
+    leverG.fillStyle(0x777777, 1);
+    leverG.fillRect(leverX - px(3), leverTopY + px(24), px(6), leverH - px(28));
+    // Base plate
+    leverG.fillStyle(0x888888, 1);
+    leverG.fillRect(leverX - px(10), leverTopY + leverH - px(4), px(20), px(8));
+    leverG.fillStyle(0x666666, 1);
+    leverG.fillRect(leverX - px(12), leverTopY + leverH + px(2), px(24), px(6));
+    // Lever arm (shiny rod)
+    const handleG = this.add.graphics();
+    handleG.fillStyle(0xCCCCCC, 1);
+    handleG.fillRect(-px(2), 0, px(4), px(30));
+    // Handle ball (red, glossy)
+    handleG.fillStyle(0xCC2222, 1);
+    handleG.fillCircle(0, -px(4), px(10));
+    handleG.fillStyle(0xE03131, 1);
+    handleG.fillCircle(0, -px(4), px(8));
+    // Highlight on ball
+    handleG.fillStyle(0xFF8888, 1);
+    handleG.fillCircle(-px(2), -px(7), px(3));
+    handleG.setPosition(leverX, leverTopY);
+    handleG.setInteractive(new Phaser.Geom.Circle(0, -px(4), px(14)), Phaser.Geom.Circle.Contains);
+    handleG.on("pointerover", () => handleG.setScale(1.08));
+    handleG.on("pointerout", () => { if (!this.isSpinning) handleG.setScale(1); });
+
+    handleG.on("pointerup", () => {
+      if (this.isSpinning || this.overlayGroup) return;
+      // Quick pull down
+      this.tweens.add({
+        targets: handleG,
+        y: leverTopY + px(70),
+        duration: 120,
+        ease: "Back.easeIn",
+        onComplete: () => {
+          this.onSpin();
+          // Slow spring back up
+          this.tweens.add({
+            targets: handleG,
+            y: leverTopY,
+            duration: 600,
+            ease: "Bounce.easeOut"
+          });
+        }
+      });
+    });
+
+    // SPIN button (kept as alternative)
+    this.spinButton = addSoftButton(this, width / 2, height - px(80), px(220), px(44));
+    this.spinLabel = this.add.text(width / 2, height - px(80), "SPIN!", { fontFamily: PX_FONT, fontSize: `${px(16)}px`, color: theme.button.text }).setOrigin(0.5);
     this.spinButton.on("pointerup", () => this.onSpin());
 
     // Bottom buttons: ? and COMBO
@@ -187,6 +261,11 @@ export class RunScene extends Phaser.Scene {
           if (delta >= 50 || matchCount >= 5) {
             this.spawnBigWinEffect();
           }
+
+          // --- FULL COMBO fireworks (all 14 patterns) ---
+          if (outcome.matches.some(m => m.patternId === "full")) {
+            this.spawnFireworks();
+          }
         } else {
           // No match — reset combo
           this.comboCount = 0;
@@ -243,6 +322,44 @@ export class RunScene extends Phaser.Scene {
     this.progressFill.clear();
     this.progressFill.fillGradientStyle(parseHex(theme.progress.fillStart), parseHex(theme.progress.fillEnd), parseHex(theme.progress.fillStart), parseHex(theme.progress.fillEnd), 1);
     this.progressFill.fillRect(px(14) + 1, px(94) + 1, progW, px(10) - 2);
+
+    // Update probability bars
+    this.updateProbBars();
+  }
+
+  private updateProbBars(): void {
+    const s = session.state;
+    const px = (n: number) => Math.round(n * this.uiScale);
+    const { width } = this.scale;
+
+    // Calculate adjusted weights (same logic as EconomyService.pickSymbol)
+    const weights = [
+      35 + s.coinBias,                                    // coin
+      20,                                                  // clover
+      10,                                                  // star
+      8 + (s.wildBoost || 0),                             // wild
+      Math.max(5, 18 + Math.floor(s.riskMeter / 18)),    // bomb
+      Math.max(3, 9 + Math.floor(s.riskMeter / 12)),     // ghost
+    ];
+    const total = weights.reduce((a, b) => a + b, 0);
+    const probColors = ["#FFD43B", "#FF8FAB", "#FFD43B", "#C9A0FF", "#FFA0A0", "#C9A0FF"];
+    const barLeft = px(80);
+    const barMaxW = width - px(120);
+    const probStartY = px(460) - px(38);
+
+    this.probBars.forEach(({ bar, pct: pctText }, i) => {
+      const pctVal = weights[i] / total;
+      const barW = Math.round(barMaxW * pctVal);
+      const by = probStartY + i * px(15);
+
+      bar.clear();
+      bar.fillStyle(0x888888, 0.2);
+      bar.fillRect(barLeft, by - px(3), barMaxW, px(6));
+      bar.fillStyle(parseHex(probColors[i]), 1);
+      bar.fillRect(barLeft, by - px(3), barW, px(6));
+
+      pctText.setText(`${Math.round(pctVal * 100)}%`);
+    });
   }
 
   private animateSpin(onComplete: () => void): void {
@@ -483,6 +600,99 @@ export class RunScene extends Phaser.Scene {
     });
   }
 
+  private spawnFireworks(): void {
+    const { width, height } = this.scale;
+    const px = (n: number) => Math.round(n * this.uiScale);
+    const colors = [0xFFD43B, 0xFF6BA6, 0x5BB8FF, 0x51CF66, 0xFF9A3C, 0xC9A0FF, 0xE03131];
+
+    // Launch 5 fireworks from different positions with staggered timing
+    const launchPoints = [
+      { x: width * 0.2, delay: 0 },
+      { x: width * 0.8, delay: 200 },
+      { x: width * 0.5, delay: 400 },
+      { x: width * 0.3, delay: 600 },
+      { x: width * 0.7, delay: 800 },
+    ];
+
+    launchPoints.forEach(({ x: launchX, delay }) => {
+      this.time.delayedCall(delay, () => {
+        const burstY = Phaser.Math.Between(px(60), px(200));
+
+        // Trail going up
+        const trail = this.add.graphics();
+        trail.fillStyle(0xFFFFFF, 1);
+        trail.fillRect(-1, 0, 2, px(8));
+        trail.setPosition(launchX, height);
+
+        this.tweens.add({
+          targets: trail,
+          y: burstY,
+          alpha: 0.5,
+          duration: 400,
+          ease: "Power2",
+          onComplete: () => {
+            trail.destroy();
+
+            // Explosion burst
+            const burstCount = Phaser.Math.Between(15, 25);
+            for (let i = 0; i < burstCount; i++) {
+              const spark = this.add.graphics();
+              const c = colors[i % colors.length];
+              const sz = Phaser.Math.Between(2, 6);
+              spark.fillStyle(c, 1);
+              spark.fillRect(0, 0, sz, sz);
+              spark.setPosition(launchX, burstY);
+
+              const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+              const dist = Phaser.Math.FloatBetween(30, 120) * this.uiScale;
+              const gravity = Phaser.Math.FloatBetween(20, 60);
+
+              this.tweens.add({
+                targets: spark,
+                x: launchX + Math.cos(angle) * dist,
+                y: burstY + Math.sin(angle) * dist + gravity,
+                alpha: 0,
+                duration: Phaser.Math.Between(600, 1200),
+                ease: "Power3",
+                onComplete: () => spark.destroy()
+              });
+            }
+
+            // Flash at burst point
+            const burstFlash = this.add.graphics();
+            burstFlash.fillStyle(0xFFFFFF, 0.6);
+            burstFlash.fillCircle(launchX, burstY, px(20));
+            this.tweens.add({
+              targets: burstFlash,
+              alpha: 0,
+              scaleX: 2, scaleY: 2,
+              duration: 200,
+              onComplete: () => burstFlash.destroy()
+            });
+          }
+        });
+      });
+    });
+
+    // "FULL COMBO!" text
+    const comboText = this.add.text(width / 2, this.gridCenterY, "FULL COMBO!", {
+      fontFamily: PX_FONT, fontSize: `${px(18)}px`, color: "#FFD43B",
+      stroke: "#000000", strokeThickness: px(3)
+    }).setOrigin(0.5).setAlpha(0);
+
+    this.tweens.add({
+      targets: comboText,
+      alpha: 1, scaleX: 1.3, scaleY: 1.3,
+      duration: 300,
+      yoyo: true,
+      hold: 800,
+      onComplete: () => comboText.destroy()
+    });
+
+    // Strong screen shake
+    this.shakeCamera(10, 400);
+  }
+
   private buildSymbolTextures(): void {
     if (this.textures.exists("sym-coin")) return;
     const theme = getTheme();
@@ -515,45 +725,73 @@ export class RunScene extends Phaser.Scene {
       g.fillStyle(0x2B8A3E, 1); g.fillRect(34, 52, 4, 12);
     });
 
+    // Star: clean 5-pointed star silhouette
     tile("sym-star", theme.symbols.star.bg, theme.symbols.star.border, (g) => {
       g.fillStyle(0xFFD43B, 1);
-      g.fillTriangle(36, 12, 42, 30, 30, 30);
-      g.fillTriangle(20, 28, 52, 28, 36, 42);
-      g.fillTriangle(24, 52, 36, 38, 48, 52);
-      g.fillTriangle(18, 36, 30, 36, 26, 52);
-      g.fillTriangle(42, 36, 54, 36, 46, 52);
-      g.fillStyle(0x5D4037, 1);
-      g.fillRect(30, 30, 4, 4); g.fillRect(38, 30, 4, 4);
-      g.fillStyle(0xFFFFFF, 0.8);
-      g.fillRect(26, 18, 3, 3); g.fillRect(44, 22, 3, 3);
+      // Large 5-pointed star using polygon points
+      const cx = 36, cy = 36, outerR = 26, innerR = 12;
+      const points: number[] = [];
+      for (let i = 0; i < 5; i++) {
+        const outerAngle = (i * 72 - 90) * Math.PI / 180;
+        points.push(cx + Math.cos(outerAngle) * outerR, cy + Math.sin(outerAngle) * outerR);
+        const innerAngle = ((i * 72) + 36 - 90) * Math.PI / 180;
+        points.push(cx + Math.cos(innerAngle) * innerR, cy + Math.sin(innerAngle) * innerR);
+      }
+      // Draw as triangles from center
+      for (let i = 0; i < 10; i++) {
+        const ni = (i + 1) % 10;
+        g.fillTriangle(cx, cy, points[i * 2], points[i * 2 + 1], points[ni * 2], points[ni * 2 + 1]);
+      }
+      // Border
+      g.lineStyle(2, 0xF0C040, 1);
+      for (let i = 0; i < 10; i++) {
+        const ni = (i + 1) % 10;
+        g.strokeLineShape(new Phaser.Geom.Line(points[i * 2], points[i * 2 + 1], points[ni * 2], points[ni * 2 + 1]));
+      }
     });
 
+    // Joker/Wild: rainbow gradient background + large joker face
+    // Joker/Wild: playing card style with big joker icon
     tile("sym-wild", theme.symbols.wild.bg, theme.symbols.wild.border, (g) => {
-      // Card-style joker: white card inner
+      // White card inner
       g.fillStyle(0xFFFFFF, 1);
-      g.fillRect(10, 6, 52, 60);
-      // Big purple "J"
+      g.fillRect(8, 4, 56, 64);
+      // Card border
+      g.lineStyle(2, 0x7C6EF0, 1);
+      g.strokeRect(8, 4, 56, 64);
+      // Top-left corner: J + diamond
       g.fillStyle(0x7C6EF0, 1);
-      g.fillRect(26, 12, 20, 5);   // top bar
-      g.fillRect(34, 12, 5, 32);   // vertical
-      g.fillRect(24, 40, 12, 5);   // bottom hook
-      g.fillRect(24, 35, 5, 10);   // hook up
-      // Red diamond top-left
+      g.fillRect(12, 8, 5, 8);   // J vertical
+      g.fillRect(10, 14, 5, 3);  // J hook
       g.fillStyle(0xE03131, 1);
-      g.fillRect(16, 10, 4, 4);
-      // Red diamond bottom-right
-      g.fillRect(52, 54, 4, 4);
-      // Star accents
+      // Diamond shape (4 pixels)
+      g.fillRect(14, 20, 4, 4);
+      g.fillRect(12, 22, 2, 2);
+      g.fillRect(18, 22, 2, 2);
+      g.fillRect(14, 24, 4, 2);
+      // Center: large joker face
+      g.fillStyle(0x7C6EF0, 1);
+      // Hat
+      g.fillRect(24, 22, 24, 5);
+      g.fillRect(30, 18, 12, 5);
       g.fillStyle(0xFFD43B, 1);
-      g.fillRect(14, 50, 6, 6);
-      g.fillRect(50, 10, 6, 6);
-      // Small "JOKER" text dots at bottom
-      g.fillStyle(0x7C6EF0, 0.5);
-      g.fillRect(18, 58, 3, 3);
-      g.fillRect(24, 58, 3, 3);
-      g.fillRect(30, 58, 3, 3);
-      g.fillRect(36, 58, 3, 3);
-      g.fillRect(42, 58, 3, 3);
+      g.fillRect(34, 15, 5, 5); // bell
+      // Face
+      g.fillStyle(0xFFE0BD, 1);
+      g.fillRect(24, 27, 24, 20);
+      // Eyes
+      g.fillStyle(0x7C6EF0, 1);
+      g.fillRect(28, 32, 5, 5);
+      g.fillRect(40, 32, 5, 5);
+      // Smile
+      g.fillStyle(0xE03131, 1);
+      g.fillRect(30, 42, 3, 3);
+      g.fillRect(33, 43, 6, 3);
+      g.fillRect(40, 42, 3, 3);
+      // Bottom-right corner: J inverted
+      g.fillStyle(0x7C6EF0, 1);
+      g.fillRect(54, 52, 5, 8);
+      g.fillRect(52, 52, 5, 3);
     });
 
     tile("sym-bomb", theme.symbols.bomb.bg, theme.symbols.bomb.border, (g) => {
