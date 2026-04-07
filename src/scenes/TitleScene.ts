@@ -36,7 +36,7 @@ export class TitleScene extends Phaser.Scene {
       shadow: { offsetX: 2, offsetY: 2, color: "#FFD8A8", fill: true, blur: 0 }
     }).setOrigin(0.5);
 
-    this.add.text(width / 2, px(116), "~ DEBT RUN ROGUELITE ~", {
+    this.add.text(width / 2, px(116), "~ DEBT RUN ROGUELIKE ~", {
       fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: theme.text.secondary
     }).setOrigin(0.5);
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Lucky Ledger — a mobile web (portrait, 360x640 base) casual slot roguelite built with Phaser 3 and TypeScript. Players spin slots to clear debt targets across progressive rounds, selecting upgrades between rounds. Runs end at round 12 (win) or when spins are exhausted (loss).
+Lucky Ledger — a mobile web (portrait, 360x640 base) casual slot roguelike built with Phaser 3 and TypeScript. Players spin slots to clear debt targets across progressive rounds, selecting upgrades between rounds. Runs end at round 12 (win) or when spins are exhausted (loss).
 
 ## Commands
 
