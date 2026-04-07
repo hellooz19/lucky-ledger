@@ -1,11 +1,13 @@
 import Phaser from "phaser";
 import { session } from "../game/session";
-import type { SymbolId } from "../types";
+import { PATTERNS } from "../game/patterns";
+import type { SymbolId, PatternMatch } from "../types";
 import { addSoftButton, addSoftPanel } from "../ui/softUi";
 import { getTheme, parseHex } from "../ui/theme";
 import { drawClouds, drawGrassBar } from "../ui/pixelDeco";
 
 const PX_FONT = "'Press Start 2P', 'Courier New', monospace";
+const ALL_SYMBOLS: SymbolId[] = ["coin", "clover", "star", "wild", "bomb", "bankrupt"];
 
 export class RunScene extends Phaser.Scene {
   private roundText!: Phaser.GameObjects.Text;
@@ -20,156 +22,134 @@ export class RunScene extends Phaser.Scene {
   private spinButton!: Phaser.GameObjects.Image;
   private spinLabel!: Phaser.GameObjects.Text;
   private isSpinning = false;
-  private reelIcons: Phaser.GameObjects.Image[] = [];
+  private gridIcons: Phaser.GameObjects.Image[] = [];
+  private gridHighlights: Phaser.GameObjects.Graphics[] = [];
   private uiScale = 1;
+  private overlayGroup: Phaser.GameObjects.Group | null = null;
 
-  private readonly symbolTextureById: Record<SymbolId, string> = {
-    coin: "sym-coin",
-    clover: "sym-clover",
-    bomb: "sym-bomb",
-    bankrupt: "sym-ghost"
+  private readonly symTex: Record<SymbolId, string> = {
+    coin: "sym-coin", clover: "sym-clover", star: "sym-star",
+    wild: "sym-wild", bomb: "sym-bomb", bankrupt: "sym-ghost"
   };
 
-  constructor() {
-    super("RunScene");
-  }
+  constructor() { super("RunScene"); }
 
   create(): void {
     const { width, height } = this.scale;
     const theme = getTheme();
     this.uiScale = Math.max(0.8, Math.min(width / 360, height / 640));
     const px = (n: number) => Math.round(n * this.uiScale);
+    this.gridIcons = [];
+    this.gridHighlights = [];
+    this.overlayGroup = null;
 
-    // Background gradient
-    const bgTop = parseHex(theme.bg.top);
-    const bgBot = parseHex(theme.bg.bottom);
+    // Background
     const bg = this.add.graphics();
-    bg.fillGradientStyle(bgTop, bgTop, bgBot, bgBot, 1);
+    bg.fillGradientStyle(parseHex(theme.bg.top), parseHex(theme.bg.top), parseHex(theme.bg.bottom), parseHex(theme.bg.bottom), 1);
     bg.fillRect(0, 0, width, height);
-
-    // Decorations
     drawClouds(this);
-
     this.buildSymbolTextures();
 
-    // --- Top bar: Round + Score ---
-    this.roundText = this.add.text(px(14), px(14), "", {
-      fontFamily: PX_FONT, fontSize: `${px(8)}px`, color: theme.text.primary
-    });
-    this.scoreText = this.add.text(width - px(14), px(14), "", {
-      fontFamily: PX_FONT, fontSize: `${px(8)}px`, color: theme.text.primary
-    }).setOrigin(1, 0);
+    // Top bar
+    this.roundText = this.add.text(px(14), px(10), "", { fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.text.primary });
+    this.scoreText = this.add.text(width - px(14), px(10), "", { fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.text.primary }).setOrigin(1, 0);
 
-    // --- Big Money Display ---
-    this.moneyText = this.add.text(width / 2, px(56), "", {
-      fontFamily: PX_FONT, fontSize: `${px(22)}px`, color: theme.text.accent
-    }).setOrigin(0.5);
-    this.goalText = this.add.text(width / 2, px(82), "", {
-      fontFamily: PX_FONT, fontSize: `${px(7)}px`, color: theme.text.secondary
-    }).setOrigin(0.5);
+    // Money
+    this.moneyText = this.add.text(width / 2, px(40), "", { fontFamily: PX_FONT, fontSize: `${px(20)}px`, color: theme.text.accent }).setOrigin(0.5);
+    this.goalText = this.add.text(width / 2, px(64), "", { fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: theme.text.secondary }).setOrigin(0.5);
 
-    // --- Progress Bar ---
-    const progY = px(100);
+    // Progress bar
+    const progY = px(80);
     const progW = width - px(28);
     const progBg = this.add.graphics();
-    progBg.lineStyle(3, parseHex(theme.progress.border), 1);
-    progBg.strokeRect(px(14), progY, progW, px(12));
     progBg.fillStyle(parseHex(theme.progress.bg), 1);
-    progBg.fillRect(px(14) + 2, progY + 2, progW - 4, px(12) - 4);
+    progBg.fillRect(px(14), progY, progW, px(10));
+    progBg.lineStyle(2, parseHex(theme.progress.border), 1);
+    progBg.strokeRect(px(14), progY, progW, px(10));
     this.progressFill = this.add.graphics();
 
-    // --- Reel Area ---
-    const reelY = px(200);
-    const reelPanel = addSoftPanel(this, width / 2, reelY, px(312), px(140));
+    // 3x3 Grid
+    const gridCenterY = px(190);
+    const cellSize = px(56);
+    const gap = px(4);
+    const gridSize = cellSize * 3 + gap * 2;
+    addSoftPanel(this, width / 2, gridCenterY, gridSize + px(20), gridSize + px(20));
 
-    // Grass blades on top of reel panel
-    const reelGrass = this.add.graphics();
-    const grassColor = parseHex(theme.decoration.grass);
-    const reelLeft = width / 2 - px(156);
-    for (let gx = 0; gx < px(312); gx += px(10)) {
-      const bh = px(3 + (gx * 7) % 5);
-      reelGrass.fillStyle(gx % (px(20)) === 0 ? grassColor - 0x202020 : grassColor, 1);
-      reelGrass.fillRect(reelLeft + gx, reelY - px(70) - bh, px(4), bh);
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 3; col++) {
+        const cx = width / 2 + (col - 1) * (cellSize + gap);
+        const cy = gridCenterY + (row - 1) * (cellSize + gap);
+        addSoftPanel(this, cx, cy, cellSize, cellSize);
+        const icon = this.add.image(cx, cy, this.symTex.coin).setDisplaySize(px(42), px(42));
+        this.gridIcons.push(icon);
+        const hl = this.add.graphics();
+        hl.setVisible(false);
+        this.gridHighlights.push(hl);
+      }
     }
 
-    const reelX = [width / 2 - px(90), width / 2, width / 2 + px(90)];
-    reelX.forEach((x) => {
-      addSoftPanel(this, x, reelY, px(80), px(80));
-      const icon = this.add.image(x, reelY, this.symbolTextureById.coin).setDisplaySize(px(64), px(64));
-      this.reelIcons.push(icon);
-    });
-
-    // --- Log (inside reel area, below icons) ---
-    this.log = this.add.text(width / 2, reelY + px(52), "", {
-      fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: theme.text.accent,
-      align: "center"
+    // Log
+    this.log = this.add.text(width / 2, gridCenterY + gridSize / 2 + px(16), "", {
+      fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.text.accent,
+      align: "center", wordWrap: { width: width - px(40) }
     }).setOrigin(0.5);
 
-    // --- Stats Chips ---
-    const chipY = px(296);
-    const chipW = px(84);
-    const chipH = px(28);
+    // Stats chips
+    const chipY = px(320);
+    const chipW = px(96);
+    const chipH = px(40);
+    addSoftPanel(this, width / 2 - px(104), chipY, chipW, chipH, parseHex(theme.stats.spins.bg), parseHex(theme.stats.spins.border));
+    this.add.text(width / 2 - px(104), chipY - px(10), "SPINS", { fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.stats.spins.text }).setOrigin(0.5);
+    this.spinsText = this.add.text(width / 2 - px(104), chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(9)}px`, color: theme.stats.spins.text }).setOrigin(0.5);
 
-    const spinsChip = addSoftPanel(this, width / 2 - px(96), chipY, chipW, chipH,
-      parseHex(theme.stats.spins.bg), parseHex(theme.stats.spins.border));
-    this.spinsText = this.add.text(width / 2 - px(96), chipY, "", {
-      fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: theme.stats.spins.text
-    }).setOrigin(0.5);
+    addSoftPanel(this, width / 2, chipY, chipW, chipH, parseHex(theme.stats.mult.bg), parseHex(theme.stats.mult.border));
+    this.add.text(width / 2, chipY - px(10), "MULTI", { fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.stats.mult.text }).setOrigin(0.5);
+    this.multiText = this.add.text(width / 2, chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(9)}px`, color: theme.stats.mult.text }).setOrigin(0.5);
 
-    const multChip = addSoftPanel(this, width / 2, chipY, chipW, chipH,
-      parseHex(theme.stats.mult.bg), parseHex(theme.stats.mult.border));
-    this.multiText = this.add.text(width / 2, chipY, "", {
-      fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: theme.stats.mult.text
-    }).setOrigin(0.5);
+    addSoftPanel(this, width / 2 + px(104), chipY, chipW, chipH, parseHex(theme.stats.risk.bg), parseHex(theme.stats.risk.border));
+    this.add.text(width / 2 + px(104), chipY - px(10), "RISK", { fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.stats.risk.text }).setOrigin(0.5);
+    this.riskText = this.add.text(width / 2 + px(104), chipY + px(6), "", { fontFamily: PX_FONT, fontSize: `${px(9)}px`, color: theme.stats.risk.text }).setOrigin(0.5);
 
-    const riskChip = addSoftPanel(this, width / 2 + px(96), chipY, chipW, chipH,
-      parseHex(theme.stats.risk.bg), parseHex(theme.stats.risk.border));
-    this.riskText = this.add.text(width / 2 + px(96), chipY, "", {
-      fontFamily: PX_FONT, fontSize: `${px(6)}px`, color: theme.stats.risk.text
-    }).setOrigin(0.5);
-
-    // --- SPIN Button ---
-    this.spinButton = addSoftButton(this, width / 2, height - px(80), px(280), px(60));
-    this.spinLabel = this.add.text(width / 2, height - px(80), "SPIN!", {
-      fontFamily: PX_FONT, fontSize: `${px(14)}px`, color: getTheme().button.text
-    }).setOrigin(0.5);
-
+    // SPIN button
+    this.spinButton = addSoftButton(this, width / 2, height - px(74), px(280), px(54));
+    this.spinLabel = this.add.text(width / 2, height - px(74), "SPIN!", { fontFamily: PX_FONT, fontSize: `${px(14)}px`, color: theme.button.text }).setOrigin(0.5);
     this.spinButton.on("pointerup", () => this.onSpin());
 
-    // Grass bar at bottom
-    drawGrassBar(this);
+    // Bottom buttons: ? and COMBO
+    const helpBtn = addSoftButton(this, px(30), height - px(30), px(36), px(28), parseHex(theme.panel.fill), parseHex(theme.panel.border));
+    this.add.text(px(30), height - px(30), "?", { fontFamily: PX_FONT, fontSize: `${px(10)}px`, color: theme.text.accent }).setOrigin(0.5);
+    helpBtn.on("pointerup", () => this.scene.start("HelpScene"));
 
+    const patBtn = addSoftButton(this, width - px(50), height - px(30), px(70), px(28), parseHex(theme.panel.fill), parseHex(theme.panel.border));
+    this.add.text(width - px(50), height - px(30), "COMBO", { fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: theme.text.accent }).setOrigin(0.5);
+    patBtn.on("pointerup", () => this.toggleOverlay());
+
+    drawGrassBar(this);
     this.renderState();
   }
 
   private onSpin(): void {
-    if (session.isGameOver() || this.isSpinning) {
-      return;
-    }
+    if (session.isGameOver() || this.isSpinning || this.overlayGroup) return;
     this.isSpinning = true;
     this.spinButton.disableInteractive();
     this.spinLabel.setText("ROLL...");
+    this.clearHighlights();
 
     this.animateSpin(() => {
       session.spin();
       const outcome = session.state.lastOutcome;
       if (outcome) {
-        outcome.symbols.forEach((symbol, index) => {
-          this.reelIcons[index].setTexture(this.symbolTextureById[symbol]);
-          this.tweens.add({
-            targets: this.reelIcons[index],
-            scaleX: 1.16,
-            scaleY: 1.16,
-            yoyo: true,
-            duration: 120
-          });
+        outcome.grid.forEach((sym, i) => {
+          this.gridIcons[i].setTexture(this.symTex[sym]);
         });
-        if (outcome.deltaMoney > 0) {
-          this.spawnSparkleBurst(this.scale.width / 2, Math.round(200 * this.uiScale), Math.min(18, 8 + Math.floor(outcome.deltaMoney / 22)));
+        if (outcome.matches.length > 0) {
+          this.highlightMatches(outcome.matches);
         }
-        this.log.setText(`${outcome.message} ${outcome.deltaMoney >= 0 ? "+" : ""}${outcome.deltaMoney}`);
+        if (outcome.totalDelta > 0) {
+          this.spawnSparkleBurst(this.scale.width / 2, Math.round(190 * this.uiScale), Math.min(18, 8 + Math.floor(outcome.totalDelta / 10)));
+        }
+        this.log.setText(outcome.message);
       }
-
       if (session.settingsRepository.getSettings().vibrationOn && navigator.vibrate) {
         navigator.vibrate(20);
       }
@@ -178,13 +158,8 @@ export class RunScene extends Phaser.Scene {
       this.spinButton.setInteractive({ useHandCursor: true });
       this.spinLabel.setText("SPIN!");
 
-      if (session.isGameOver()) {
-        this.scene.start("ResultScene");
-        return;
-      }
-      if (session.isRoundCleared()) {
-        this.scene.start("ShopScene");
-      }
+      if (session.isGameOver()) { this.scene.start("ResultScene"); return; }
+      if (session.isRoundCleared()) { this.scene.start("ShopScene"); }
     });
   }
 
@@ -192,171 +167,236 @@ export class RunScene extends Phaser.Scene {
     const s = session.state;
     const px = (n: number) => Math.round(n * this.uiScale);
     const theme = getTheme();
-    const progressRatio = Phaser.Math.Clamp(s.currentMoney / s.debtTarget, 0, 1);
-    const progW = (this.scale.width - px(28) - 4) * progressRatio;
-    const needMoney = Math.max(0, s.debtTarget - s.currentMoney);
+    const ratio = Phaser.Math.Clamp(s.currentMoney / s.debtTarget, 0, 1);
+    const progW = (this.scale.width - px(28) - 4) * ratio;
+    const need = Math.max(0, s.debtTarget - s.currentMoney);
 
-    this.roundText.setText(`R.${s.roundIndex}`);
-    this.scoreText.setText(`SC ${s.score}`);
+    this.roundText.setText(`ROUND ${s.roundIndex}`);
+    this.scoreText.setText(`SCORE ${s.score}`);
     this.moneyText.setText(`$${s.currentMoney}`);
-    this.goalText.setText(`GOAL $${s.debtTarget}  NEED $${needMoney}`);
-    this.spinsText.setText(`SP ${s.spinsLeft}`);
+    this.goalText.setText(`GOAL $${s.debtTarget}  NEED $${need}`);
+    this.spinsText.setText(`${s.spinsLeft}/${s.maxSpinsPerRound}`);
     this.multiText.setText(`x${s.multiplier}`);
     this.riskText.setText(`${s.riskMeter}%`);
-
-    // Risk color changes
-    if (s.riskMeter >= 70) {
-      this.riskText.setColor("#FF4444");
-    } else if (s.riskMeter >= 35) {
-      this.riskText.setColor("#FFD43B");
-    } else {
-      this.riskText.setColor(theme.stats.risk.text);
-    }
+    this.riskText.setColor(s.riskMeter >= 70 ? "#FF4444" : s.riskMeter >= 35 ? "#FFD43B" : theme.stats.risk.text);
 
     this.progressFill.clear();
-    const fillStart = parseHex(theme.progress.fillStart);
-    const fillEnd = parseHex(theme.progress.fillEnd);
-    this.progressFill.fillGradientStyle(fillStart, fillEnd, fillStart, fillEnd, 1);
-    this.progressFill.fillRect(px(14) + 2, px(100) + 2, progW, px(12) - 4);
+    this.progressFill.fillGradientStyle(parseHex(theme.progress.fillStart), parseHex(theme.progress.fillEnd), parseHex(theme.progress.fillStart), parseHex(theme.progress.fillEnd), 1);
+    this.progressFill.fillRect(px(14) + 1, px(80) + 1, progW, px(10) - 2);
   }
 
   private animateSpin(onComplete: () => void): void {
-    const symbolIds: SymbolId[] = ["coin", "clover", "bomb", "bankrupt"];
-
     const ticker = this.time.addEvent({
-      delay: 60,
-      loop: true,
+      delay: 60, loop: true,
       callback: () => {
-        this.reelIcons.forEach((icon, i) => {
-          const sym = symbolIds[(Math.floor((this.time.now + i * 71) / 50) + i) % symbolIds.length];
-          icon.setTexture(this.symbolTextureById[sym]);
+        this.gridIcons.forEach((icon, i) => {
+          const sym = ALL_SYMBOLS[(Math.floor((this.time.now + i * 37) / 50) + i) % ALL_SYMBOLS.length];
+          icon.setTexture(this.symTex[sym]);
         });
       }
     });
-
-    this.time.delayedCall(740, () => {
+    this.time.delayedCall(1100, () => {
       ticker.remove(false);
       onComplete();
     });
   }
 
+  private highlightMatches(matches: PatternMatch[]): void {
+    const px = (n: number) => Math.round(n * this.uiScale);
+    const cellSize = px(56);
+    const gap = px(4);
+    const { width } = this.scale;
+    const gridCenterY = px(190);
+
+    const allPositions = new Set<number>();
+    for (const m of matches) {
+      for (const pos of m.positions) allPositions.add(pos);
+    }
+
+    allPositions.forEach((pos) => {
+      const row = Math.floor(pos / 3);
+      const col = pos % 3;
+      const cx = width / 2 + (col - 1) * (cellSize + gap);
+      const cy = gridCenterY + (row - 1) * (cellSize + gap);
+
+      const hl = this.gridHighlights[pos];
+      hl.clear();
+      hl.lineStyle(3, 0xFF9A3C, 1);
+      hl.strokeRect(cx - cellSize / 2, cy - cellSize / 2, cellSize, cellSize);
+      hl.setVisible(true);
+
+      this.tweens.add({
+        targets: this.gridIcons[pos],
+        scaleX: 1.12, scaleY: 1.12,
+        yoyo: true, duration: 150
+      });
+    });
+  }
+
+  private clearHighlights(): void {
+    this.gridHighlights.forEach((hl) => { hl.clear(); hl.setVisible(false); });
+  }
+
+  private toggleOverlay(): void {
+    if (this.overlayGroup) {
+      this.overlayGroup.destroy(true);
+      this.overlayGroup = null;
+      this.spinButton.setInteractive({ useHandCursor: true });
+      return;
+    }
+
+    const { width, height } = this.scale;
+    const px = (n: number) => Math.round(n * this.uiScale);
+    this.overlayGroup = this.add.group();
+
+    const dim = this.add.graphics();
+    dim.fillStyle(0x000000, 0.7);
+    dim.fillRect(0, 0, width, height);
+    dim.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
+    dim.on("pointerup", () => this.toggleOverlay());
+    this.overlayGroup.add(dim);
+
+    const title = this.add.text(width / 2, px(30), "PATTERNS", { fontFamily: PX_FONT, fontSize: `${px(10)}px`, color: "#FFD43B" }).setOrigin(0.5);
+    this.overlayGroup.add(title);
+
+    const miniCell = px(10);
+    const miniGap = px(2);
+    const colWidth = px(150);
+    const startY = px(60);
+
+    PATTERNS.forEach((pat, idx) => {
+      const col = idx < 7 ? 0 : 1;
+      const row = idx < 7 ? idx : idx - 7;
+      const baseX = width / 2 + (col === 0 ? -colWidth / 2 - px(10) : colWidth / 2 - px(40));
+      const baseY = startY + row * px(72);
+
+      const gridG = this.add.graphics();
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const cellIdx = r * 3 + c;
+          const isHit = pat.positions.includes(cellIdx);
+          const cx = baseX + c * (miniCell + miniGap);
+          const cy = baseY + r * (miniCell + miniGap);
+          gridG.fillStyle(isHit ? 0xFF9A3C : 0x444444, 1);
+          gridG.fillRect(cx, cy, miniCell, miniCell);
+        }
+      }
+      this.overlayGroup!.add(gridG);
+
+      const label = this.add.text(baseX + (miniCell + miniGap) * 3 + px(6), baseY + px(4), pat.name, {
+        fontFamily: PX_FONT, fontSize: `${px(5)}px`, color: "#FFFFFF"
+      });
+      this.overlayGroup!.add(label);
+
+      const valText = this.add.text(baseX + (miniCell + miniGap) * 3 + px(6), baseY + px(16), `Value: ${pat.value}`, {
+        fontFamily: PX_FONT, fontSize: `${px(4)}px`, color: "#AAAAAA"
+      });
+      this.overlayGroup!.add(valText);
+    });
+
+    this.spinButton.disableInteractive();
+  }
+
   private spawnSparkleBurst(x: number, y: number, amount: number): void {
     const theme = getTheme();
     const colors = [parseHex(theme.text.accent), parseHex(theme.progress.fillStart), parseHex(theme.decoration.grass)];
-
-    for (let i = 0; i < amount; i += 1) {
+    for (let i = 0; i < amount; i++) {
       const star = this.add.graphics();
-      const c = colors[i % colors.length];
-      star.fillStyle(c, 1);
+      star.fillStyle(colors[i % colors.length], 1);
       star.fillRect(0, 0, 6, 6);
       star.setPosition(x, y);
-
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-      const distance = Phaser.Math.FloatBetween(30, 90) * this.uiScale;
-      const tx = x + Math.cos(angle) * distance;
-      const ty = y + Math.sin(angle) * distance;
-
+      const dist = Phaser.Math.FloatBetween(30, 90) * this.uiScale;
       this.tweens.add({
-        targets: star,
-        x: tx,
-        y: ty,
-        alpha: 0,
-        duration: Phaser.Math.Between(300, 500),
+        targets: star, x: x + Math.cos(angle) * dist, y: y + Math.sin(angle) * dist,
+        alpha: 0, duration: Phaser.Math.Between(300, 500),
         onComplete: () => star.destroy()
       });
     }
   }
 
   private buildSymbolTextures(): void {
-    if (this.textures.exists("sym-coin")) {
-      return;
-    }
-
+    if (this.textures.exists("sym-coin")) return;
     const theme = getTheme();
-    const tileSize = 72;
+    const sz = 72;
 
-    const createTile = (key: string, bgHex: string, borderHex: string, painter: (g: Phaser.GameObjects.Graphics) => void) => {
+    const tile = (key: string, bg: string, border: string, draw: (g: Phaser.GameObjects.Graphics) => void) => {
       const g = this.add.graphics();
-      g.fillStyle(parseHex(bgHex), 1);
-      g.fillRect(0, 0, tileSize, tileSize);
-      g.lineStyle(3, parseHex(borderHex), 1);
-      g.strokeRect(1, 1, tileSize - 2, tileSize - 2);
-      painter(g);
-      g.generateTexture(key, tileSize, tileSize);
+      g.fillStyle(parseHex(bg), 1);
+      g.fillRect(0, 0, sz, sz);
+      g.lineStyle(3, parseHex(border), 1);
+      g.strokeRect(1, 1, sz - 2, sz - 2);
+      draw(g);
+      g.generateTexture(key, sz, sz);
       g.destroy();
     };
 
-    // Coin: cute face on yellow bg
-    createTile("sym-coin", theme.symbols.coin.bg, theme.symbols.coin.border, (g) => {
-      g.fillStyle(0xFFD43B, 1);
-      g.fillCircle(36, 36, 22);
-      g.lineStyle(3, 0xF0C040, 1);
-      g.strokeCircle(36, 36, 22);
+    tile("sym-coin", theme.symbols.coin.bg, theme.symbols.coin.border, (g) => {
+      g.fillStyle(0xFFD43B, 1); g.fillCircle(36, 36, 22);
+      g.lineStyle(3, 0xF0C040, 1); g.strokeCircle(36, 36, 22);
       g.fillStyle(0x5D4037, 1);
-      g.fillRect(28, 30, 5, 6);
-      g.fillRect(39, 30, 5, 6);
-      g.fillStyle(0x5D4037, 1);
-      g.fillRect(30, 41, 3, 3);
-      g.fillRect(33, 43, 6, 3);
-      g.fillRect(39, 41, 3, 3);
+      g.fillRect(28, 30, 5, 6); g.fillRect(39, 30, 5, 6);
+      g.fillRect(30, 41, 3, 3); g.fillRect(33, 43, 6, 3); g.fillRect(39, 41, 3, 3);
     });
 
-    // Clover: flower with pink petals
-    createTile("sym-clover", theme.symbols.clover.bg, theme.symbols.clover.border, (g) => {
+    tile("sym-clover", theme.symbols.clover.bg, theme.symbols.clover.border, (g) => {
       g.fillStyle(0xFF8FAB, 1);
-      g.fillCircle(36, 24, 10);
-      g.fillCircle(24, 36, 10);
-      g.fillCircle(48, 36, 10);
-      g.fillCircle(36, 48, 10);
-      g.fillStyle(0xFFE066, 1);
-      g.fillCircle(36, 36, 7);
-      g.fillStyle(0x2B8A3E, 1);
-      g.fillRect(34, 52, 4, 12);
+      g.fillCircle(36, 24, 10); g.fillCircle(24, 36, 10);
+      g.fillCircle(48, 36, 10); g.fillCircle(36, 48, 10);
+      g.fillStyle(0xFFE066, 1); g.fillCircle(36, 36, 7);
+      g.fillStyle(0x2B8A3E, 1); g.fillRect(34, 52, 4, 12);
     });
 
-    // Bomb: angry face on gray sphere
-    createTile("sym-bomb", theme.symbols.bomb.bg, theme.symbols.bomb.border, (g) => {
-      g.fillStyle(0xFF6B6B, 1);
-      g.fillRect(34, 8, 4, 8);
+    tile("sym-star", theme.symbols.star.bg, theme.symbols.star.border, (g) => {
       g.fillStyle(0xFFD43B, 1);
-      g.fillRect(33, 4, 6, 6);
-      g.fillStyle(0x555555, 1);
-      g.fillCircle(36, 40, 20);
-      g.fillStyle(0xFF4444, 1);
-      g.fillRect(26, 34, 4, 3);
-      g.fillRect(28, 36, 4, 3);
-      g.fillRect(42, 34, 4, 3);
-      g.fillRect(40, 36, 4, 3);
-      g.fillStyle(0xFF4444, 1);
-      g.fillRect(30, 48, 3, 3);
-      g.fillRect(33, 46, 6, 3);
-      g.fillRect(39, 48, 3, 3);
+      g.fillTriangle(36, 12, 42, 30, 30, 30);
+      g.fillTriangle(20, 28, 52, 28, 36, 42);
+      g.fillTriangle(24, 52, 36, 38, 48, 52);
+      g.fillTriangle(18, 36, 30, 36, 26, 52);
+      g.fillTriangle(42, 36, 54, 36, 46, 52);
+      g.fillStyle(0x5D4037, 1);
+      g.fillRect(30, 30, 4, 4); g.fillRect(38, 30, 4, 4);
+      g.fillStyle(0xFFFFFF, 0.8);
+      g.fillRect(26, 18, 3, 3); g.fillRect(44, 22, 3, 3);
     });
 
-    // Bankrupt: ghost with wavy tail
-    createTile("sym-ghost", theme.symbols.bankrupt.bg, theme.symbols.bankrupt.border, (g) => {
+    tile("sym-wild", theme.symbols.wild.bg, theme.symbols.wild.border, (g) => {
+      g.fillStyle(0xFFCCCC, 0.4); g.fillRect(4, 4, 64, 22);
+      g.fillStyle(0xCCFFCC, 0.4); g.fillRect(4, 26, 64, 22);
+      g.fillStyle(0xCCCCFF, 0.4); g.fillRect(4, 48, 64, 20);
+      g.fillStyle(0x7C6EF0, 1);
+      g.fillRect(18, 20, 5, 28); g.fillRect(49, 20, 5, 28);
+      g.fillRect(29, 38, 5, 10); g.fillRect(38, 38, 5, 10);
+      g.fillRect(23, 44, 6, 4); g.fillRect(43, 44, 6, 4);
+      g.fillRect(33, 44, 6, 4);
+      g.fillStyle(0x5D4037, 1);
+      g.fillRect(28, 12, 4, 4); g.fillRect(40, 12, 4, 4);
+    });
+
+    tile("sym-bomb", theme.symbols.bomb.bg, theme.symbols.bomb.border, (g) => {
+      g.fillStyle(0xFF6B6B, 1); g.fillRect(34, 8, 4, 8);
+      g.fillStyle(0xFFD43B, 1); g.fillRect(33, 4, 6, 6);
+      g.fillStyle(0x555555, 1); g.fillCircle(36, 40, 20);
+      g.fillStyle(0xFF4444, 1);
+      g.fillRect(26, 34, 4, 3); g.fillRect(28, 36, 4, 3);
+      g.fillRect(42, 34, 4, 3); g.fillRect(40, 36, 4, 3);
+      g.fillRect(30, 48, 3, 3); g.fillRect(33, 46, 6, 3); g.fillRect(39, 48, 3, 3);
+    });
+
+    tile("sym-ghost", theme.symbols.bankrupt.bg, theme.symbols.bankrupt.border, (g) => {
       g.fillStyle(0xFFFFFF, 1);
-      g.fillRect(24, 18, 24, 6);
-      g.fillRect(22, 24, 28, 24);
-      g.fillRect(26, 14, 20, 4);
-      g.fillRect(22, 48, 8, 6);
-      g.fillRect(34, 48, 8, 6);
-      g.fillRect(28, 48, 6, 3);
-      g.fillRect(42, 48, 8, 6);
+      g.fillRect(24, 18, 24, 6); g.fillRect(22, 24, 28, 24); g.fillRect(26, 14, 20, 4);
+      g.fillRect(22, 48, 8, 6); g.fillRect(34, 48, 8, 6);
+      g.fillRect(28, 48, 6, 3); g.fillRect(42, 48, 8, 6);
       g.fillStyle(0x2D2D2D, 1);
-      g.fillRect(28, 28, 6, 8);
-      g.fillRect(38, 28, 6, 8);
-      g.fillStyle(0x2D2D2D, 1);
+      g.fillRect(28, 28, 6, 8); g.fillRect(38, 28, 6, 8);
       g.fillRect(32, 40, 8, 5);
     });
 
-    // Sparkle particle (pixel square)
     if (!this.textures.exists("fx-star")) {
       const g = this.add.graphics();
-      g.fillStyle(0xFFD43B, 1);
-      g.fillRect(0, 0, 8, 8);
-      g.generateTexture("fx-star", 8, 8);
-      g.destroy();
+      g.fillStyle(0xFFD43B, 1); g.fillRect(0, 0, 8, 8);
+      g.generateTexture("fx-star", 8, 8); g.destroy();
     }
   }
 }
