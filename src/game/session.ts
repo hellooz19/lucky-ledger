@@ -98,6 +98,7 @@ export class GameSession {
       maxMultiplier: 5,
       riskMeter: 0,
       coinBias: 0,
+      wildBoost: 0,
       shield: 0,
       spinCount: 0,
       spinSeconds: 0,
