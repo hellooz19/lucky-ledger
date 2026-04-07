@@ -5,7 +5,7 @@ const POOL: UpgradeOption[] = [
   {
     id: "cash-boost",
     title: "Cash Boost",
-    description: "Current money +40",
+    description: "현재 소지금 +40",
     apply: (state) => {
       state.currentMoney += 40;
     }
@@ -13,7 +13,7 @@ const POOL: UpgradeOption[] = [
   {
     id: "coin-bias",
     title: "Coin Bias",
-    description: "Coin chance +8",
+    description: "코인 출현 확률 +8",
     apply: (state) => {
       state.coinBias += 8;
     }
@@ -21,7 +21,7 @@ const POOL: UpgradeOption[] = [
   {
     id: "reinforced-core",
     title: "Shield Coating",
-    description: "Ignore 1 bomb",
+    description: "폭탄 1회 무효화",
     apply: (state) => {
       state.shield = Math.min(2, state.shield + 1);
     }
@@ -29,7 +29,7 @@ const POOL: UpgradeOption[] = [
   {
     id: "lucky-draw",
     title: "Lucky Draw",
-    description: "Wild chance +10 next round",
+    description: "조커 출현 확률 +10",
     apply: (state) => {
       state.wildBoost += 10;
     }
@@ -37,7 +37,7 @@ const POOL: UpgradeOption[] = [
   {
     id: "cap-breaker",
     title: "Cap Breaker",
-    description: "Max multiplier +1",
+    description: "최대 배율 +1",
     apply: (state) => {
       state.maxMultiplier += 1;
     }
@@ -45,7 +45,7 @@ const POOL: UpgradeOption[] = [
   {
     id: "risk-cooler",
     title: "Risk Cooler",
-    description: "Risk -20",
+    description: "위험도 -20",
     apply: (state) => {
       state.riskMeter = Math.max(0, state.riskMeter - 20);
     }
